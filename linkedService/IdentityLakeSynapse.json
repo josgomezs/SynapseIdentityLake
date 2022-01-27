@@ -1,6 +1,12 @@
 {
 	"name": "IdentityLakeSynapse",
 	"properties": {
+		"parameters": {
+			"storageaccount": {
+				"type": "string",
+				"defaultValue": "landingzone"
+			}
+		},
 		"annotations": [],
 		"type": "AzureBlobFS",
 		"typeProperties": {

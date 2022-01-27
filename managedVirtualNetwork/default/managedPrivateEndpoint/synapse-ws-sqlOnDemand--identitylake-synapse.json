@@ -1,0 +1,10 @@
+{
+	"name": "synapse-ws-sqlOnDemand--identitylake-synapse",
+	"properties": {
+		"privateLinkResourceId": "/subscriptions/0d0df1c1-84dd-490b-bed1-07244f2dd931/resourceGroups/rg-ge-identitylake/providers/Microsoft.Synapse/workspaces/identitylake-synapse",
+		"groupId": "sqlOnDemand",
+		"fqdns": [
+			"identitylake-synapse-ondemand.19b74efa-6731-46a3-b130-f0d318f37556.sql.azuresynapse.net"
+		]
+	}
+}

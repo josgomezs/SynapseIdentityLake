@@ -1,0 +1,471 @@
+{
+	"name": "pl_azuread_identitylake",
+	"properties": {
+		"description": "extraction of azure AD information",
+		"activities": [
+			{
+				"name": "SecretID",
+				"type": "WebActivity",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"url": "https://landingzonekeyvaultlake.vault.azure.net/secrets/AAD-SecretID/d6ff677324da42a4acb4c7439e867a16?api-version=7.0",
+					"connectVia": {
+						"referenceName": "AutoResolveIntegrationRuntime",
+						"type": "IntegrationRuntimeReference"
+					},
+					"method": "GET",
+					"authentication": {
+						"type": "MSI",
+						"resource": "https://vault.azure.net"
+					}
+				}
+			},
+			{
+				"name": "getSecretID",
+				"type": "SetVariable",
+				"dependsOn": [
+					{
+						"activity": "SecretID",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"variableName": "secretid",
+					"value": {
+						"value": "@activity('SecretID').output.value",
+						"type": "Expression"
+					}
+				}
+			},
+			{
+				"name": "getClientID",
+				"description": "@activity('ClientID').output.value",
+				"type": "SetVariable",
+				"dependsOn": [
+					{
+						"activity": "ClientID",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"variableName": "clientid",
+					"value": {
+						"value": "@activity('ClientID').output.value",
+						"type": "Expression"
+					}
+				}
+			},
+			{
+				"name": "ClientID",
+				"type": "WebActivity",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"url": "https://landingzonekeyvaultlake.vault.azure.net/secrets/AAD-ClientID/579e5763e36f40b285995a9f7292e66a?api-version=7.0",
+					"method": "GET",
+					"authentication": {
+						"type": "MSI",
+						"resource": "https://vault.azure.net"
+					}
+				}
+			},
+			{
+				"name": "Token",
+				"type": "WebActivity",
+				"dependsOn": [
+					{
+						"activity": "getSecretID",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					},
+					{
+						"activity": "getClientID",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					},
+					{
+						"activity": "getTenantD",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"url": {
+						"value": "@concat('https://login.microsoftonline.com/',variables('tenantid'),'/oauth2/v2.0/token')",
+						"type": "Expression"
+					},
+					"method": "POST",
+					"headers": {
+						"Content-Type": "application/x-www-form-urlencoded"
+					},
+					"body": {
+						"value": "@concat(concat('tenant=',variables('tenantid'),'&client_id=',variables('clientid'),'&client_secret='),variables('secretid'),'&grant_type=client_credentials&scope=https://graph.microsoft.com/.default')",
+						"type": "Expression"
+					}
+				}
+			},
+			{
+				"name": "getToken",
+				"type": "SetVariable",
+				"dependsOn": [
+					{
+						"activity": "Token",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"variableName": "token",
+					"value": {
+						"value": "@activity('Token').output.access_token",
+						"type": "Expression"
+					}
+				}
+			},
+			{
+				"name": "set_bs_azuread_source",
+				"type": "Copy",
+				"dependsOn": [
+					{
+						"activity": "getToken",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "RestSource",
+						"httpRequestTimeout": "00:01:40",
+						"requestInterval": "00.00:00:00.010",
+						"requestMethod": "GET",
+						"additionalHeaders": {
+							"Authorization": {
+								"value": "@concat('Bearer ',variables('token'))",
+								"type": "Expression"
+							}
+						},
+						"paginationRules": {
+							"AbsoluteURL": {
+								"value": "$['@odata.nextLink']",
+								"type": "Expression"
+							}
+						}
+					},
+					"sink": {
+						"type": "ParquetSink",
+						"storeSettings": {
+							"type": "AzureBlobFSWriteSettings"
+						},
+						"formatSettings": {
+							"type": "ParquetWriteSettings"
+						}
+					},
+					"enableStaging": false,
+					"translator": {
+						"type": "TabularTranslator",
+						"mappings": [
+							{
+								"source": {
+									"path": "['id']"
+								},
+								"sink": {
+									"name": "id",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['accountEnabled']"
+								},
+								"sink": {
+									"name": "accountEnabled",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['businessPhones'][0]"
+								},
+								"sink": {
+									"name": "businessPhones",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['city']"
+								},
+								"sink": {
+									"name": "city",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['createdDateTime']"
+								},
+								"sink": {
+									"name": "createdDateTime",
+									"type": "DateTime"
+								}
+							},
+							{
+								"source": {
+									"path": "['companyName']"
+								},
+								"sink": {
+									"name": "companyName",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['country']"
+								},
+								"sink": {
+									"name": "country",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['department']"
+								},
+								"sink": {
+									"name": "department",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['displayName']"
+								},
+								"sink": {
+									"name": "displayName",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['givenName']"
+								},
+								"sink": {
+									"name": "givenName",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['jobTitle']"
+								},
+								"sink": {
+									"name": "jobTitle",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['mail']"
+								},
+								"sink": {
+									"name": "mail",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['mailNickname']"
+								},
+								"sink": {
+									"name": "mailNickname",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['onPremisesDomainName']"
+								},
+								"sink": {
+									"name": "onPremisesDomainName",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['onPremisesImmutableId']"
+								},
+								"sink": {
+									"name": "onPremisesImmutableId",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['state']"
+								},
+								"sink": {
+									"name": "state",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['streetAddress']"
+								},
+								"sink": {
+									"name": "streetAddress",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['surname']"
+								},
+								"sink": {
+									"name": "surname",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['usageLocation']"
+								},
+								"sink": {
+									"name": "usageLocation",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "['userType']"
+								},
+								"sink": {
+									"name": "userType",
+									"type": "String"
+								}
+							}
+						],
+						"collectionReference": "$['value']",
+						"mapComplexValuesToString": true
+					}
+				},
+				"inputs": [
+					{
+						"referenceName": "1_bs_azuread_source",
+						"type": "DatasetReference"
+					}
+				],
+				"outputs": [
+					{
+						"referenceName": "2_bs_azuread_sink_synapse",
+						"type": "DatasetReference"
+					}
+				]
+			},
+			{
+				"name": "TenantID",
+				"type": "WebActivity",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"url": "https://landingzonekeyvaultlake.vault.azure.net/secrets/AAD-TenantID/a5ddc75cc83041dcb2bfe6a972ef0eed?api-version=7.0",
+					"method": "GET",
+					"authentication": {
+						"type": "MSI",
+						"resource": "https://vault.azure.net"
+					}
+				}
+			},
+			{
+				"name": "getTenantD",
+				"type": "SetVariable",
+				"dependsOn": [
+					{
+						"activity": "TenantID",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"variableName": "tenantid",
+					"value": {
+						"value": "@activity('TenantID').output.value",
+						"type": "Expression"
+					}
+				}
+			}
+		],
+		"variables": {
+			"secretid": {
+				"type": "String"
+			},
+			"clientid": {
+				"type": "String"
+			},
+			"token": {
+				"type": "String"
+			},
+			"tenantid": {
+				"type": "String"
+			}
+		},
+		"folder": {
+			"name": "AzureAD_Pipelines"
+		},
+		"annotations": [],
+		"lastPublishTime": "2021-10-06T22:13:41Z"
+	},
+	"type": "Microsoft.DataFactory/factories/pipelines"
+}

@@ -1,0 +1,25 @@
+{
+	"name": "2_bs_azuread_sink",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "IdentityLake",
+			"type": "LinkedServiceReference"
+		},
+		"folder": {
+			"name": "AzureAD_DataSets"
+		},
+		"annotations": [],
+		"type": "Parquet",
+		"typeProperties": {
+			"location": {
+				"type": "AzureBlobFSLocation",
+				"fileName": "bs_azuread_sink_2.parquet",
+				"folderPath": "AzureActiveDirectory",
+				"fileSystem": "landingzone"
+			},
+			"compressionCodec": "gzip"
+		},
+		"schema": []
+	},
+	"type": "Microsoft.DataFactory/factories/datasets"
+}

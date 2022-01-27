@@ -1,0 +1,27 @@
+{
+	"name": "2_bs_azuread_sink_synapse",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "IdentityLakeSynapse",
+			"type": "LinkedServiceReference",
+			"parameters": {
+				"storageaccount": "landingzone"
+			}
+		},
+		"folder": {
+			"name": "AzureAD_DataSets"
+		},
+		"annotations": [],
+		"type": "Parquet",
+		"typeProperties": {
+			"location": {
+				"type": "AzureBlobFSLocation",
+				"fileName": "azuread.parquet",
+				"folderPath": "azuread",
+				"fileSystem": "landingzone"
+			},
+			"compressionCodec": "snappy"
+		},
+		"schema": []
+	}
+}

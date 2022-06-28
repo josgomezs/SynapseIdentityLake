@@ -1,0 +1,36 @@
+{
+	"$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentParameters.json#",
+	"contentVersion": "1.0.0.0",
+	"parameters": {
+		"workspaceName": {
+			"value": "identitylake-synapse"
+		},
+		"identitylake-synapse-WorkspaceDefaultSqlServer_connectionString": {
+			"value": ""
+		},
+		"identitylake_synapse_workspace_accountKey": {
+			"value": ""
+		},
+		"soapworkday_password": {
+			"value": ""
+		},
+		"HttpCovisintUsers_properties_typeProperties_url": {
+			"value": "https://api.us1.covisint.com/person/v3/persons"
+		},
+		"identitylake-synapse-WorkspaceDefaultStorage_properties_typeProperties_url": {
+			"value": "https://identitylakesynapsedlsa.dfs.core.windows.net"
+		},
+		"identitylake_synapse_workspace_properties_typeProperties_url": {
+			"value": "https://identitylakesynapsedlsa.dfs.core.windows.net/"
+		},
+		"restapigraphapp_properties_typeProperties_url": {
+			"value": "https://graph.microsoft.com/beta/users?$expand=manager($select=onPremisesImmutableId,givenName,surname,userType,jobTitle)&$select=id,accountEnabled,city,createdDateTime,companyName,country,department,displayName,givenName,jobTitle,mail,mailNickname,onPremisesDomainName,onPremisesImmutableId,state,streetAddress,surname,usageLocation,userType,extension_704de6122db04c93a59bbb1337c9888f_employeeType,businessPhones"
+		},
+		"soapworkday_properties_typeProperties_url": {
+			"value": "https://services1.myworkday.com/ccx/service/coke/Human_Resources"
+		},
+		"soapworkday_properties_typeProperties_userName": {
+			"value": "ISUGlobalEngineeringDAWorkday@coke"
+		}
+	}
+}

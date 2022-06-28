@@ -400,7 +400,7 @@
 							"type": "SetVariable",
 							"dependsOn": [
 								{
-									"activity": "getCovisintUsersLoop",
+									"activity": "If file is empty",
 									"dependencyConditions": [
 										"Succeeded"
 									]
@@ -524,6 +524,25 @@
 										}
 									}
 								]
+							}
+						},
+						{
+							"name": "If file is empty",
+							"type": "IfCondition",
+							"dependsOn": [
+								{
+									"activity": "getCovisintUsersLoop",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"userProperties": [],
+							"typeProperties": {
+								"expression": {
+									"value": "@equals(activity('getCovisintUsersLoop').output.rowsRead, 0)",
+									"type": "Expression"
+								}
 							}
 						}
 					],

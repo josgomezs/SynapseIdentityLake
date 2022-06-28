@@ -1,0 +1,122 @@
+{
+	"name": "3_bs_koad_source",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "identitylake_synapse_workspace",
+			"type": "LinkedServiceReference"
+		},
+		"folder": {
+			"name": "LDAP_DataSets"
+		},
+		"annotations": [],
+		"type": "Json",
+		"typeProperties": {
+			"location": {
+				"type": "AzureBlobFSLocation",
+				"fileName": "bs_opad_KOAD_sink.json.gz",
+				"folderPath": "OnPremiseActiveDirectory/test",
+				"fileSystem": "landingzone"
+			},
+			"compression": {
+				"type": "gzip",
+				"level": "Fastest"
+			}
+		},
+		"schema": {
+			"type": "object",
+			"properties": {
+				"users": {
+					"type": "array",
+					"items": {
+						"type": "object",
+						"properties": {
+							"raw_dn": {
+								"type": "string"
+							},
+							"dn": {
+								"type": "string"
+							},
+							"raw_attributes": {
+								"type": "object",
+								"properties": {
+									"objectClass": {
+										"type": "string"
+									},
+									"cn": {
+										"type": "string"
+									},
+									"distinguishedName": {
+										"type": "string"
+									},
+									"instanceType": {
+										"type": "string"
+									},
+									"whenCreated": {
+										"type": "string"
+									},
+									"whenChanged": {
+										"type": "string"
+									},
+									"uSNCreated": {
+										"type": "string"
+									},
+									"uSNChanged": {
+										"type": "string"
+									},
+									"name": {
+										"type": "string"
+									},
+									"givenname": {
+										"type": "string"
+									},
+									"displayname": {
+										"type": "string"
+									},
+									"surname": {
+										"type": "string"
+									},
+									"objectGUID": {
+										"type": "string"
+									},
+									"objectSid": {
+										"type": "string"
+									},
+									"sAMAccountName": {
+										"type": "string"
+									},
+									"dNSHostName": {
+										"type": "string"
+									},
+									"servicePrincipalName": {
+										"type": "string"
+									},
+									"objectCategory": {
+										"type": "string"
+									},
+									"dSCorePropagationData": {
+										"type": "string"
+									},
+									"lastLogonTimestamp": {
+										"type": "string"
+									},
+									"userAccountControl": {
+										"type": "string"
+									},
+									"memberOf": {
+										"type": "string"
+									},
+									"pwdLastSet": {
+										"type": "string"
+									},
+									"primaryGroupID": {
+										"type": "string"
+									}
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+}

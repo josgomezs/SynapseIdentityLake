@@ -1,0 +1,24 @@
+{
+	"name": "2_bs_koldap_sink",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "identitylake_synapse_workspace",
+			"type": "LinkedServiceReference"
+		},
+		"folder": {
+			"name": "LDAP_DataSets"
+		},
+		"annotations": [],
+		"type": "Parquet",
+		"typeProperties": {
+			"location": {
+				"type": "AzureBlobFSLocation",
+				"fileName": "bs_opad_KOLDAP_sink.parquet",
+				"folderPath": "OnPremiseActiveDirectory/test",
+				"fileSystem": "landingzone"
+			},
+			"compressionCodec": "gzip"
+		},
+		"schema": []
+	}
+}

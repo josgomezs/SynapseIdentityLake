@@ -1,0 +1,26 @@
+{
+	"name": "HttpCovisintUsers",
+	"properties": {
+		"parameters": {
+			"page": {
+				"type": "string",
+				"defaultValue": "1"
+			},
+			"page_size": {
+				"type": "string",
+				"defaultValue": "200"
+			}
+		},
+		"annotations": [],
+		"type": "HttpServer",
+		"typeProperties": {
+			"url": "https://api.us1.covisint.com/person/v3/persons",
+			"enableServerCertificateValidation": true,
+			"authenticationType": "Anonymous"
+		},
+		"connectVia": {
+			"referenceName": "AutoResolveIntegrationRuntime",
+			"type": "IntegrationRuntimeReference"
+		}
+	}
+}

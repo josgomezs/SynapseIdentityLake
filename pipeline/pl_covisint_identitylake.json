@@ -555,10 +555,7 @@
 						"storeSettings": {
 							"type": "AzureBlobFSReadSettings",
 							"recursive": true,
-							"wildcardFolderPath": {
-								"value": "@pipeline().globalParameters.covisint_directory",
-								"type": "Expression"
-							},
+							"wildcardFolderPath": "COVISINT",
 							"wildcardFileName": "*",
 							"enablePartitionDiscovery": false
 						}
@@ -643,6 +640,10 @@
 				"userProperties": [],
 				"typeProperties": {
 					"url": "https://api.us1.covisint.com/oauth/v3/token",
+					"connectVia": {
+						"referenceName": "AutoResolveIntegrationRuntime",
+						"type": "IntegrationRuntimeReference"
+					},
 					"method": "POST",
 					"headers": {
 						"Content-Type": "application/x-www-form-urlencoded",

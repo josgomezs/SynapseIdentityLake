@@ -396,66 +396,6 @@
 							]
 						},
 						{
-							"name": "page_number_in_loop",
-							"type": "SetVariable",
-							"dependsOn": [
-								{
-									"activity": "If file is empty",
-									"dependencyConditions": [
-										"Succeeded"
-									]
-								}
-							],
-							"userProperties": [],
-							"typeProperties": {
-								"variableName": "page_number_in_loop",
-								"value": {
-									"value": "@variables('page_number')",
-									"type": "Expression"
-								}
-							}
-						},
-						{
-							"name": "rest_call_output",
-							"type": "SetVariable",
-							"dependsOn": [
-								{
-									"activity": "page_number",
-									"dependencyConditions": [
-										"Succeeded"
-									]
-								}
-							],
-							"userProperties": [],
-							"typeProperties": {
-								"variableName": "users_written_in_cycle",
-								"value": {
-									"value": "@string(activity('getCovisintUsersLoop').output.dataWritten)",
-									"type": "Expression"
-								}
-							}
-						},
-						{
-							"name": "page_number",
-							"type": "SetVariable",
-							"dependsOn": [
-								{
-									"activity": "page_number_in_loop",
-									"dependencyConditions": [
-										"Succeeded"
-									]
-								}
-							],
-							"userProperties": [],
-							"typeProperties": {
-								"variableName": "page_number",
-								"value": {
-									"value": "@string(add(int(variables('page_number_in_loop')),1))",
-									"type": "Expression"
-								}
-							}
-						},
-						{
 							"name": "If Valid Token",
 							"type": "IfCondition",
 							"dependsOn": [
@@ -527,8 +467,8 @@
 							}
 						},
 						{
-							"name": "If file is empty",
-							"type": "IfCondition",
+							"name": "page_number_in_loop",
+							"type": "SetVariable",
 							"dependsOn": [
 								{
 									"activity": "getCovisintUsersLoop",
@@ -539,8 +479,49 @@
 							],
 							"userProperties": [],
 							"typeProperties": {
-								"expression": {
-									"value": "@equals(activity('getCovisintUsersLoop').output.rowsRead, 0)",
+								"variableName": "page_number_in_loop",
+								"value": {
+									"value": "@variables('page_number')",
+									"type": "Expression"
+								}
+							}
+						},
+						{
+							"name": "rest_call_output",
+							"type": "SetVariable",
+							"dependsOn": [
+								{
+									"activity": "page_number",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"userProperties": [],
+							"typeProperties": {
+								"variableName": "users_written_in_cycle",
+								"value": {
+									"value": "@string(activity('getCovisintUsersLoop').output.rowsRead)",
+									"type": "Expression"
+								}
+							}
+						},
+						{
+							"name": "page_number",
+							"type": "SetVariable",
+							"dependsOn": [
+								{
+									"activity": "page_number_in_loop",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"userProperties": [],
+							"typeProperties": {
+								"variableName": "page_number",
+								"value": {
+									"value": "@string(add(int(variables('page_number_in_loop')),1))",
 									"type": "Expression"
 								}
 							}

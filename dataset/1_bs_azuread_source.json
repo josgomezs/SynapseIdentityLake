@@ -1,0 +1,15 @@
+{
+	"name": "1_bs_azuread_source",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "restapigraphapp",
+			"type": "LinkedServiceReference"
+		},
+		"folder": {
+			"name": "AzureAD_DataSets"
+		},
+		"annotations": [],
+		"type": "RestResource",
+		"schema": []
+	}
+}

@@ -1,0 +1,27 @@
+{
+	"name": "3_bs_koldap_source",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "identitylake_synapse_workspace",
+			"type": "LinkedServiceReference"
+		},
+		"folder": {
+			"name": "LDAP_DataSets"
+		},
+		"annotations": [],
+		"type": "Json",
+		"typeProperties": {
+			"location": {
+				"type": "AzureBlobFSLocation",
+				"fileName": "bs_opad_KOLDAP_sink.json.gz",
+				"folderPath": "OnPremiseActiveDirectory/koldap",
+				"fileSystem": "landingzone"
+			},
+			"compression": {
+				"type": "gzip",
+				"level": "Fastest"
+			}
+		},
+		"schema": {}
+	}
+}

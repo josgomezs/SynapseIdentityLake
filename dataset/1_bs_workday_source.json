@@ -1,0 +1,19 @@
+{
+	"name": "1_bs_workday_source",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "soapworkday",
+			"type": "LinkedServiceReference"
+		},
+		"folder": {
+			"name": "Workday_DataSets"
+		},
+		"annotations": [],
+		"type": "Xml",
+		"typeProperties": {
+			"location": {
+				"type": "HttpServerLocation"
+			}
+		}
+	}
+}

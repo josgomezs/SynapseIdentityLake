@@ -1,0 +1,27 @@
+{
+	"name": "2_bs_covisint_temp",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "identitylake_synapse_workspace",
+			"type": "LinkedServiceReference"
+		},
+		"folder": {
+			"name": "Covisint_DataSets"
+		},
+		"annotations": [],
+		"type": "Parquet",
+		"typeProperties": {
+			"location": {
+				"type": "AzureBlobFSLocation",
+				"fileName": {
+					"value": "@concat('bs_covisint_sink_temp_', utcNow() , '.parquet')",
+					"type": "Expression"
+				},
+				"folderPath": "COVISINT",
+				"fileSystem": "landingzone"
+			},
+			"compressionCodec": "gzip"
+		},
+		"schema": []
+	}
+}

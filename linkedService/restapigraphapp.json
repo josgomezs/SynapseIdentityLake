@@ -1,0 +1,16 @@
+{
+	"name": "restapigraphapp",
+	"properties": {
+		"annotations": [],
+		"type": "RestService",
+		"typeProperties": {
+			"url": "https://graph.microsoft.com/beta/users?$expand=manager($select=onPremisesImmutableId,givenName,surname,userType,jobTitle)&$select=id,accountEnabled,city,createdDateTime,companyName,country,department,displayName,givenName,jobTitle,mail,mailNickname,onPremisesDomainName,onPremisesImmutableId,state,streetAddress,surname,usageLocation,userType,extension_704de6122db04c93a59bbb1337c9888f_employeeType,businessPhones",
+			"enableServerCertificateValidation": true,
+			"authenticationType": "Anonymous"
+		},
+		"connectVia": {
+			"referenceName": "AutoResolveIntegrationRuntime",
+			"type": "IntegrationRuntimeReference"
+		}
+	}
+}

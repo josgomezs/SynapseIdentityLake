@@ -1,0 +1,2403 @@
+{
+	"$schema": "http://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+	"contentVersion": "1.0.0.0",
+	"parameters": {
+		"workspaceName": {
+			"type": "string",
+			"metadata": "Workspace name",
+			"defaultValue": "identitylake-synapse"
+		},
+		"identitylake-synapse-WorkspaceDefaultSqlServer_connectionString": {
+			"type": "secureString",
+			"metadata": "Secure string for 'connectionString' of 'identitylake-synapse-WorkspaceDefaultSqlServer'"
+		},
+		"identitylake_synapse_workspace_accountKey": {
+			"type": "secureString",
+			"metadata": "Secure string for 'accountKey' of 'identitylake_synapse_workspace'"
+		},
+		"soapworkday_password": {
+			"type": "secureString",
+			"metadata": "Secure string for 'password' of 'soapworkday'"
+		},
+		"HttpCovisintUsers_properties_typeProperties_url": {
+			"type": "string",
+			"defaultValue": "https://api.us1.covisint.com/person/v3/persons"
+		},
+		"identitylake-synapse-WorkspaceDefaultStorage_properties_typeProperties_url": {
+			"type": "string",
+			"defaultValue": "https://identitylakesynapsedlsa.dfs.core.windows.net"
+		},
+		"identitylake_synapse_workspace_properties_typeProperties_url": {
+			"type": "string",
+			"defaultValue": "https://identitylakesynapsedlsa.dfs.core.windows.net/"
+		},
+		"restapigraphapp_properties_typeProperties_url": {
+			"type": "string",
+			"defaultValue": "https://graph.microsoft.com/beta/users?$expand=manager($select=onPremisesImmutableId,givenName,surname,userType,jobTitle)&$select=id,accountEnabled,city,createdDateTime,companyName,country,department,displayName,givenName,jobTitle,mail,mailNickname,onPremisesDomainName,onPremisesImmutableId,state,streetAddress,surname,usageLocation,userType,extension_704de6122db04c93a59bbb1337c9888f_employeeType,businessPhones"
+		},
+		"soapworkday_properties_typeProperties_url": {
+			"type": "string",
+			"defaultValue": "https://services1.myworkday.com/ccx/service/coke/Human_Resources"
+		},
+		"soapworkday_properties_typeProperties_userName": {
+			"type": "string",
+			"defaultValue": "ISUGlobalEngineeringDAWorkday@coke"
+		}
+	},
+	"variables": {
+		"workspaceId": "[concat('Microsoft.Synapse/workspaces/', parameters('workspaceName'))]"
+	},
+	"resources": [
+		{
+			"name": "[concat(parameters('workspaceName'), '/pl_azuread_identitylake')]",
+			"type": "Microsoft.Synapse/workspaces/pipelines",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"description": "extraction of azure AD information",
+				"activities": [
+					{
+						"name": "SecretID",
+						"type": "WebActivity",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "7.00:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"url": "https://landingzonekeyvaultlake.vault.azure.net/secrets/AAD-SecretID/d6ff677324da42a4acb4c7439e867a16?api-version=7.0",
+							"method": "GET",
+							"headers": {},
+							"authentication": {
+								"type": "MSI",
+								"resource": "https://vault.azure.net"
+							}
+						}
+					},
+					{
+						"name": "ClientID",
+						"type": "WebActivity",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "7.00:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"url": "https://landingzonekeyvaultlake.vault.azure.net/secrets/AAD-ClientID/579e5763e36f40b285995a9f7292e66a?api-version=7.0",
+							"method": "GET",
+							"headers": {},
+							"authentication": {
+								"type": "MSI",
+								"resource": "https://vault.azure.net"
+							}
+						}
+					},
+					{
+						"name": "Token",
+						"type": "WebActivity",
+						"dependsOn": [
+							{
+								"activity": "SecretID",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							},
+							{
+								"activity": "ClientID",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							},
+							{
+								"activity": "TenantID",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "7.00:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"url": {
+								"value": "@concat('https://login.microsoftonline.com/',activity('TenantID').output.value,'/oauth2/v2.0/token')",
+								"type": "Expression"
+							},
+							"method": "POST",
+							"headers": {
+								"Content-Type": "application/x-www-form-urlencoded"
+							},
+							"body": {
+								"value": "@concat(concat('tenant=',activity('TenantID').output.value,'&client_id=',activity('ClientID').output.value,'&client_secret='),activity('SecretID').output.value,'&grant_type=client_credentials&scope=https://graph.microsoft.com/.default')",
+								"type": "Expression"
+							}
+						}
+					},
+					{
+						"name": "TenantID",
+						"type": "WebActivity",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "7.00:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"url": "https://landingzonekeyvaultlake.vault.azure.net/secrets/AAD-TenantID/a5ddc75cc83041dcb2bfe6a972ef0eed?api-version=7.0",
+							"method": "GET",
+							"headers": {},
+							"authentication": {
+								"type": "MSI",
+								"resource": "https://vault.azure.net"
+							}
+						}
+					},
+					{
+						"name": "set_bs_azuread_source",
+						"type": "Copy",
+						"dependsOn": [
+							{
+								"activity": "Token",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "7.00:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "RestSource",
+								"httpRequestTimeout": "00:01:40",
+								"requestInterval": "00.00:00:00.010",
+								"requestMethod": "GET",
+								"additionalHeaders": {
+									"Authorization": {
+										"value": "@concat('Bearer ',activity('Token').output.access_token)",
+										"type": "Expression"
+									},
+									"ConsistencyLevel": "eventual"
+								},
+								"paginationRules": {
+									"AbsoluteUrl": {
+										"value": "$['@odata.nextLink']",
+										"type": "Expression"
+									}
+								}
+							},
+							"sink": {
+								"type": "ParquetSink",
+								"storeSettings": {
+									"type": "AzureBlobFSWriteSettings"
+								},
+								"formatSettings": {
+									"type": "ParquetWriteSettings"
+								}
+							},
+							"enableStaging": false,
+							"translator": {
+								"type": "TabularTranslator",
+								"mappings": [
+									{
+										"source": {
+											"path": "['id']"
+										},
+										"sink": {
+											"name": "id",
+											"type": "String"
+										}
+									},
+									{
+										"source": {
+											"path": "['accountEnabled']"
+										},
+										"sink": {
+											"name": "accountEnabled",
+											"type": "String"
+										}
+									},
+									{
+										"source": {
+											"path": "['city']"
+										},
+										"sink": {
+											"name": "city",
+											"type": "String"
+										}
+									},
+									{
+										"source": {
+											"path": "['createdDateTime']"
+										},
+										"sink": {
+											"name": "createdDateTime",
+											"type": "DateTime"
+										}
+									},
+									{
+										"source": {
+											"path": "['companyName']"
+										},
+										"sink": {
+											"name": "companyName",
+											"type": "String"
+										}
+									},
+									{
+										"source": {
+											"path": "['country']"
+										},
+										"sink": {
+											"name": "country",
+											"type": "String"
+										}
+									},
+									{
+										"source": {
+											"path": "['department']"
+										},
+										"sink": {
+											"name": "department",
+											"type": "String"
+										}
+									},
+									{
+										"source": {
+											"path": "['displayName']"
+										},
+										"sink": {
+											"name": "displayName",
+											"type": "String"
+										}
+									},
+									{
+										"source": {
+											"path": "['givenName']"
+										},
+										"sink": {
+											"name": "givenName",
+											"type": "String"
+										}
+									},
+									{
+										"source": {
+											"path": "['jobTitle']"
+										},
+										"sink": {
+											"name": "jobTitle",
+											"type": "String"
+										}
+									},
+									{
+										"source": {
+											"path": "['mail']"
+										},
+										"sink": {
+											"name": "mail",
+											"type": "String"
+										}
+									},
+									{
+										"source": {
+											"path": "['mailNickname']"
+										},
+										"sink": {
+											"name": "mailNickname",
+											"type": "String"
+										}
+									},
+									{
+										"source": {
+											"path": "['onPremisesDomainName']"
+										},
+										"sink": {
+											"name": "onPremisesDomainName",
+											"type": "String"
+										}
+									},
+									{
+										"source": {
+											"path": "['onPremisesImmutableId']"
+										},
+										"sink": {
+											"name": "onPremisesImmutableId",
+											"type": "String"
+										}
+									},
+									{
+										"source": {
+											"path": "['state']"
+										},
+										"sink": {
+											"name": "state",
+											"type": "String"
+										}
+									},
+									{
+										"source": {
+											"path": "['streetAddress']"
+										},
+										"sink": {
+											"name": "streetAddress",
+											"type": "String"
+										}
+									},
+									{
+										"source": {
+											"path": "['surname']"
+										},
+										"sink": {
+											"name": "surname",
+											"type": "String"
+										}
+									},
+									{
+										"source": {
+											"path": "['usageLocation']"
+										},
+										"sink": {
+											"name": "usageLocation",
+											"type": "String"
+										}
+									},
+									{
+										"source": {
+											"path": "['userType']"
+										},
+										"sink": {
+											"name": "userType",
+											"type": "String"
+										}
+									},
+									{
+										"source": {
+											"path": "['extension_704de6122db04c93a59bbb1337c9888f_employeeType']"
+										},
+										"sink": {
+											"name": "employeeType",
+											"type": "String"
+										}
+									},
+									{
+										"source": {
+											"path": "['manager']['onPremisesImmutableId']"
+										},
+										"sink": {
+											"name": "manager_onPremisesImmutableId",
+											"type": "String"
+										}
+									},
+									{
+										"source": {
+											"path": "['manager']['givenName']"
+										},
+										"sink": {
+											"name": "manager_givenName",
+											"type": "String"
+										}
+									},
+									{
+										"source": {
+											"path": "['manager']['surname']"
+										},
+										"sink": {
+											"name": "manager_surname",
+											"type": "String"
+										}
+									},
+									{
+										"source": {
+											"path": "['manager']['userType']"
+										},
+										"sink": {
+											"name": "manager_userType",
+											"type": "String"
+										}
+									},
+									{
+										"source": {
+											"path": "['manager']['jobTitle']"
+										},
+										"sink": {
+											"name": "manager_jobTitle",
+											"type": "String"
+										}
+									},
+									{
+										"source": {
+											"path": "['businessPhones'][0]"
+										},
+										"sink": {
+											"name": "businessPhones",
+											"type": "String"
+										}
+									}
+								],
+								"collectionReference": "$['value']",
+								"mapComplexValuesToString": true
+							}
+						},
+						"inputs": [
+							{
+								"referenceName": "1_bs_azuread_source",
+								"type": "DatasetReference",
+								"parameters": {}
+							}
+						],
+						"outputs": [
+							{
+								"referenceName": "2_bs_azuread_sink",
+								"type": "DatasetReference",
+								"parameters": {}
+							}
+						]
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {},
+					"cancelAfter": {}
+				},
+				"folder": {
+					"name": "AzureAD_Pipelines"
+				},
+				"annotations": [],
+				"lastPublishTime": "2022-06-17T15:46:39Z"
+			},
+			"dependsOn": [
+				"[concat(variables('workspaceId'), '/datasets/1_bs_azuread_source')]",
+				"[concat(variables('workspaceId'), '/datasets/2_bs_azuread_sink')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/pl_covisint_identitylake')]",
+			"type": "Microsoft.Synapse/workspaces/pipelines",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"activities": [
+					{
+						"name": "covisint_token",
+						"type": "SetVariable",
+						"dependsOn": [
+							{
+								"activity": "getCovisintToken",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"variableName": "covisint_token",
+							"value": {
+								"value": "@activity('getCovisintToken').output.access_token",
+								"type": "Expression"
+							}
+						}
+					},
+					{
+						"name": "Pagination",
+						"type": "Until",
+						"dependsOn": [
+							{
+								"activity": "covisint_token",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"expression": {
+								"value": "@equals(int(variables('users_written_in_cycle')), 0)",
+								"type": "Expression"
+							},
+							"activities": [
+								{
+									"name": "getCovisintUsersLoop",
+									"type": "Copy",
+									"dependsOn": [],
+									"policy": {
+										"timeout": "7.00:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"source": {
+											"type": "JsonSource",
+											"storeSettings": {
+												"type": "HttpReadSettings",
+												"requestMethod": "GET",
+												"additionalHeaders": {
+													"value": "@{concat('Accept:application/vnd.com.covisint.platform.person.v1+json;includedivision=true;includelastlogindate=true;includeNotificationPrefs=true\nAuthorization:Bearer ',variables('covisint_token'))}",
+													"type": "Expression"
+												},
+												"requestTimeout": ""
+											},
+											"formatSettings": {
+												"type": "JsonReadSettings"
+											}
+										},
+										"sink": {
+											"type": "ParquetSink",
+											"storeSettings": {
+												"type": "AzureBlobFSWriteSettings"
+											},
+											"formatSettings": {
+												"type": "ParquetWriteSettings"
+											}
+										},
+										"enableStaging": false,
+										"translator": {
+											"type": "TabularTranslator",
+											"mappings": [
+												{
+													"source": {
+														"path": "$['id']"
+													},
+													"sink": {
+														"name": "id",
+														"type": "String"
+													}
+												},
+												{
+													"source": {
+														"path": "$['version']"
+													},
+													"sink": {
+														"name": "version",
+														"type": "String"
+													}
+												},
+												{
+													"source": {
+														"path": "$['creator']"
+													},
+													"sink": {
+														"name": "creator",
+														"type": "String"
+													}
+												},
+												{
+													"source": {
+														"path": "$['creation']"
+													},
+													"sink": {
+														"name": "creation",
+														"type": "String"
+													}
+												},
+												{
+													"source": {
+														"path": "$['realm']"
+													},
+													"sink": {
+														"name": "realm",
+														"type": "String"
+													}
+												},
+												{
+													"source": {
+														"path": "$['status']"
+													},
+													"sink": {
+														"name": "status",
+														"type": "String"
+													}
+												},
+												{
+													"source": {
+														"path": "$['phoneVerifiedMode']"
+													},
+													"sink": {
+														"name": "phoneVerifiedMode",
+														"type": "String"
+													}
+												},
+												{
+													"source": {
+														"path": "$['emailVerifiedMode']"
+													},
+													"sink": {
+														"name": "emailVerifiedMode",
+														"type": "String"
+													}
+												},
+												{
+													"source": {
+														"path": "$['preferredMode']"
+													},
+													"sink": {
+														"name": "preferredMode",
+														"type": "String"
+													}
+												},
+												{
+													"source": {
+														"path": "$['name']['given']"
+													},
+													"sink": {
+														"name": "given",
+														"type": "String"
+													}
+												},
+												{
+													"source": {
+														"path": "$['name']['surname']"
+													},
+													"sink": {
+														"name": "surname",
+														"type": "String"
+													}
+												},
+												{
+													"source": {
+														"path": "$['name']['prefix']"
+													},
+													"sink": {
+														"name": "prefix",
+														"type": "String"
+													}
+												},
+												{
+													"source": {
+														"path": "$['addresses'][0]['streets'][0]"
+													},
+													"sink": {
+														"name": "items",
+														"type": "String"
+													}
+												},
+												{
+													"source": {
+														"path": "$['addresses'][0]['city']"
+													},
+													"sink": {
+														"name": "city",
+														"type": "String"
+													}
+												},
+												{
+													"source": {
+														"path": "$['addresses'][0]['state']"
+													},
+													"sink": {
+														"name": "state",
+														"type": "String"
+													}
+												},
+												{
+													"source": {
+														"path": "$['addresses'][0]['postal']"
+													},
+													"sink": {
+														"name": "postal",
+														"type": "String"
+													}
+												},
+												{
+													"source": {
+														"path": "$['addresses'][0]['country']"
+													},
+													"sink": {
+														"name": "country",
+														"type": "String"
+													}
+												},
+												{
+													"source": {
+														"path": "$['language']"
+													},
+													"sink": {
+														"name": "language",
+														"type": "String"
+													}
+												},
+												{
+													"source": {
+														"path": "$['timezone']"
+													},
+													"sink": {
+														"name": "timezone",
+														"type": "String"
+													}
+												},
+												{
+													"source": {
+														"path": "$['phones'][0]['type']"
+													},
+													"sink": {
+														"name": "phones'][0]['type",
+														"type": "String"
+													}
+												},
+												{
+													"source": {
+														"path": "$['phones'][0]['number']"
+													},
+													"sink": {
+														"name": "number",
+														"type": "String"
+													}
+												},
+												{
+													"source": {
+														"path": "$['email']"
+													},
+													"sink": {
+														"name": "email",
+														"type": "String"
+													}
+												},
+												{
+													"source": {
+														"path": "$['organization']['id']"
+													},
+													"sink": {
+														"name": "organization_id",
+														"type": "String"
+													}
+												},
+												{
+													"source": {
+														"path": "$['organization']['type']"
+													},
+													"sink": {
+														"name": "organization_type",
+														"type": "String"
+													}
+												},
+												{
+													"source": {
+														"path": "$['organization']['realm']"
+													},
+													"sink": {
+														"name": "organization_realm",
+														"type": "String"
+													}
+												},
+												{
+													"source": {
+														"path": "$['attributes'][0]['id']"
+													},
+													"sink": {
+														"name": "attributes'][0]['id",
+														"type": "String"
+													}
+												},
+												{
+													"source": {
+														"path": "$['attributes'][0]['name']"
+													},
+													"sink": {
+														"name": "name",
+														"type": "String"
+													}
+												},
+												{
+													"source": {
+														"path": "$['attributes'][0]['value']"
+													},
+													"sink": {
+														"name": "value",
+														"type": "String"
+													}
+												},
+												{
+													"source": {
+														"path": "$['username']"
+													},
+													"sink": {
+														"name": "username",
+														"type": "String"
+													}
+												},
+												{
+													"source": {
+														"path": "$['authDomain']"
+													},
+													"sink": {
+														"name": "authDomain",
+														"type": "String"
+													}
+												},
+												{
+													"source": {
+														"path": "$['title']"
+													},
+													"sink": {
+														"name": "title",
+														"type": "String"
+													}
+												},
+												{
+													"source": {
+														"path": "$['activatedDate']"
+													},
+													"sink": {
+														"name": "activatedDate",
+														"type": "String"
+													}
+												}
+											]
+										}
+									},
+									"inputs": [
+										{
+											"referenceName": "bs_covisint_source",
+											"type": "DatasetReference",
+											"parameters": {
+												"page_size": {
+													"value": "@variables('page_size')",
+													"type": "Expression"
+												},
+												"page": {
+													"value": "@variables('page_number')",
+													"type": "Expression"
+												}
+											}
+										}
+									],
+									"outputs": [
+										{
+											"referenceName": "2_bs_covisint_temp",
+											"type": "DatasetReference",
+											"parameters": {}
+										}
+									]
+								},
+								{
+									"name": "If Valid Token",
+									"type": "IfCondition",
+									"dependsOn": [
+										{
+											"activity": "getCovisintUsersLoop",
+											"dependencyConditions": [
+												"Failed"
+											]
+										}
+									],
+									"userProperties": [],
+									"typeProperties": {
+										"expression": {
+											"value": "@or(equals(activity('getCovisintUsersLoop').output.errors[0].Code, 21271), equals(activity('getCovisintUsersLoop').output.errors[0].Code, 9756))",
+											"type": "Expression"
+										},
+										"ifTrueActivities": [
+											{
+												"name": "covisint_token_refreshed",
+												"type": "SetVariable",
+												"dependsOn": [
+													{
+														"activity": "refreshCovisintToken",
+														"dependencyConditions": [
+															"Succeeded"
+														]
+													}
+												],
+												"userProperties": [],
+												"typeProperties": {
+													"variableName": "covisint_token",
+													"value": {
+														"value": "@activity('refreshCovisintToken').output.access_token",
+														"type": "Expression"
+													}
+												}
+											},
+											{
+												"name": "refreshCovisintToken",
+												"type": "WebActivity",
+												"dependsOn": [],
+												"policy": {
+													"timeout": "7.00:00:00",
+													"retry": 0,
+													"retryIntervalInSeconds": 30,
+													"secureOutput": false,
+													"secureInput": false
+												},
+												"userProperties": [],
+												"typeProperties": {
+													"url": "https://api.us1.covisint.com/oauth/v3/token",
+													"method": "POST",
+													"headers": {
+														"Content-Type": "application/x-www-form-urlencoded",
+														"Authorization": "Basic VTJZYUNMYVdBam1lWWh3anNHUU1TYk1NTU54Z3dBcG06QWxLZ2dOR2g4Nm03S2dCSw=="
+													},
+													"body": "grant_type=client_credentials",
+													"authentication": {
+														"type": "Basic",
+														"username": "U2YaCLaWAjmeYhwjsGQMSbMMMNxgwApm",
+														"password": {
+															"type": "SecureString",
+															"value": "**********"
+														}
+													}
+												}
+											}
+										]
+									}
+								},
+								{
+									"name": "page_number_in_loop",
+									"type": "SetVariable",
+									"dependsOn": [
+										{
+											"activity": "getCovisintUsersLoop",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"userProperties": [],
+									"typeProperties": {
+										"variableName": "page_number_in_loop",
+										"value": {
+											"value": "@variables('page_number')",
+											"type": "Expression"
+										}
+									}
+								},
+								{
+									"name": "rest_call_output",
+									"type": "SetVariable",
+									"dependsOn": [
+										{
+											"activity": "page_number",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"userProperties": [],
+									"typeProperties": {
+										"variableName": "users_written_in_cycle",
+										"value": {
+											"value": "@string(activity('getCovisintUsersLoop').output.rowsRead)",
+											"type": "Expression"
+										}
+									}
+								},
+								{
+									"name": "page_number",
+									"type": "SetVariable",
+									"dependsOn": [
+										{
+											"activity": "page_number_in_loop",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"userProperties": [],
+									"typeProperties": {
+										"variableName": "page_number",
+										"value": {
+											"value": "@string(add(int(variables('page_number_in_loop')),1))",
+											"type": "Expression"
+										}
+									}
+								}
+							],
+							"timeout": "7.00:00:00"
+						}
+					},
+					{
+						"name": "mergeTempFiles",
+						"type": "Copy",
+						"dependsOn": [
+							{
+								"activity": "Pagination",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "7.00:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "ParquetSource",
+								"storeSettings": {
+									"type": "AzureBlobFSReadSettings",
+									"recursive": true,
+									"wildcardFolderPath": "COVISINT",
+									"wildcardFileName": "*",
+									"enablePartitionDiscovery": false
+								}
+							},
+							"sink": {
+								"type": "ParquetSink",
+								"storeSettings": {
+									"type": "AzureBlobFSWriteSettings",
+									"copyBehavior": "MergeFiles"
+								},
+								"formatSettings": {
+									"type": "ParquetWriteSettings"
+								}
+							},
+							"enableStaging": false,
+							"translator": {
+								"type": "TabularTranslator",
+								"typeConversion": true,
+								"typeConversionSettings": {
+									"allowDataTruncation": true,
+									"treatBooleanAsNumber": false
+								}
+							}
+						},
+						"inputs": [
+							{
+								"referenceName": "2_bs_covisint_temp",
+								"type": "DatasetReference",
+								"parameters": {}
+							}
+						],
+						"outputs": [
+							{
+								"referenceName": "3_bs_covisint_sink",
+								"type": "DatasetReference",
+								"parameters": {}
+							}
+						]
+					},
+					{
+						"name": "deleteTempFiles",
+						"type": "Delete",
+						"dependsOn": [
+							{
+								"activity": "mergeTempFiles",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "7.00:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"dataset": {
+								"referenceName": "2_bs_covisint_temp",
+								"type": "DatasetReference",
+								"parameters": {}
+							},
+							"enableLogging": false,
+							"storeSettings": {
+								"type": "AzureBlobFSReadSettings",
+								"recursive": true,
+								"wildcardFileName": "bs_covisint_sink_temp*",
+								"enablePartitionDiscovery": false
+							}
+						}
+					},
+					{
+						"name": "getCovisintToken",
+						"type": "WebActivity",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "7.00:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"url": "https://api.us1.covisint.com/oauth/v3/token",
+							"connectVia": {
+								"referenceName": "AutoResolveIntegrationRuntime",
+								"type": "IntegrationRuntimeReference"
+							},
+							"method": "POST",
+							"headers": {
+								"Content-Type": "application/x-www-form-urlencoded",
+								"Authorization": "Basic VTJZYUNMYVdBam1lWWh3anNHUU1TYk1NTU54Z3dBcG06QWxLZ2dOR2g4Nm03S2dCSw=="
+							},
+							"body": "grant_type=client_credentials",
+							"authentication": {
+								"type": "Basic",
+								"username": "U2YaCLaWAjmeYhwjsGQMSbMMMNxgwApm",
+								"password": {
+									"type": "SecureString",
+									"value": "**********"
+								}
+							}
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {},
+					"cancelAfter": {}
+				},
+				"variables": {
+					"get_token_reponse": {
+						"type": "String"
+					},
+					"covisint_token": {
+						"type": "String"
+					},
+					"page_number": {
+						"type": "String",
+						"defaultValue": "1"
+					},
+					"users_written_in_cycle": {
+						"type": "String"
+					},
+					"response_code": {
+						"type": "String"
+					},
+					"page_size": {
+						"type": "String",
+						"defaultValue": "200"
+					},
+					"page_number_in_loop": {
+						"type": "String"
+					}
+				},
+				"folder": {
+					"name": "Covisint_Pipelines"
+				},
+				"annotations": [],
+				"lastPublishTime": "2021-12-23T21:52:54Z"
+			},
+			"dependsOn": [
+				"[concat(variables('workspaceId'), '/datasets/2_bs_covisint_temp')]",
+				"[concat(variables('workspaceId'), '/datasets/3_bs_covisint_sink')]",
+				"[concat(variables('workspaceId'), '/integrationRuntimes/AutoResolveIntegrationRuntime')]",
+				"[concat(variables('workspaceId'), '/datasets/bs_covisint_source')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/pl_workday_identitylake')]",
+			"type": "Microsoft.Synapse/workspaces/pipelines",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"description": "extract and dump the Workday information",
+				"activities": [
+					{
+						"name": "num_pages",
+						"type": "SetVariable",
+						"dependsOn": [
+							{
+								"activity": "obtain_pages",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"variableName": "num_pages",
+							"value": {
+								"value": "@string(add(int(json(xml(replace(string(xml(activity('obtain_pages').output.firstRow)), ':', ''))).envelope.body.Get_Workers_Response.response_results.total_pages),1))",
+								"type": "Expression"
+							}
+						}
+					},
+					{
+						"name": "obtain_pages",
+						"type": "Lookup",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "7.00:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "XmlSource",
+								"storeSettings": {
+									"type": "HttpReadSettings",
+									"requestMethod": "POST",
+									"additionalHeaders": "content-type:text/xml",
+									"requestBody": {
+										"value": "@{concat('<s:Envelope xmlns:s=\"http://schemas.xmlsoap.org/soap/envelope/\" xmlns:u=\"http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-utility-1.0.xsd\">\n   <s:Header>\n      <h:Workday_Common_Header xmlns:h=\"urn:com.workday/bsvc\" xmlns=\"urn:com.workday/bsvc\" xmlns:xsd=\"http://www.w3.org/2001/XMLSchema\" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\">\n         <Include_Reference_Descriptors_In_Response>true</Include_Reference_Descriptors_In_Response>\n      </h:Workday_Common_Header>\n      <o:Security xmlns:o=\"http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-secext-1.0.xsd\" s:mustUnderstand=\"1\">\n         <o:UsernameToken u:Id=\"uuid-5cea302c-c204-4be1-a0e4-11aa6735daf6-1\">\n            <o:Username>ISUGlobalEngineeringDAWorkday',string('@'),'coke</o:Username>\n            <o:Password>B%lUnAtYK8yT!ZW</o:Password>\n         </o:UsernameToken>\n      </o:Security>\n   </s:Header>\n   <s:Body xmlns:xsd=\"http://www.w3.org/2001/XMLSchema\" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\">\n      <Get_Workers_Request xmlns=\"urn:com.workday/bsvc\" xmlns:a=\"urn:com.workday/bsvc\" a:version=\"v33.1\">\n         <a:Response_Filter>\n            <a:Page>',variables('act_page'),'</a:Page>\n            <a:Count>',variables('num_workers'),'</a:Count>\n         </a:Response_Filter>\n         <a:Response_Group>\n            <a:Include_Reference>false</a:Include_Reference>\n            <a:Include_Personal_Information>false</a:Include_Personal_Information>\n            <a:Include_Employment_Information>false</a:Include_Employment_Information>\n            <a:Include_User_Account>false</a:Include_User_Account>\n         </a:Response_Group>\n      </Get_Workers_Request>\n   </s:Body>\n</s:Envelope>')}",
+										"type": "Expression"
+									},
+									"requestTimeout": "00:10:00"
+								},
+								"formatSettings": {
+									"type": "XmlReadSettings",
+									"validationMode": "none",
+									"namespaces": true
+								}
+							},
+							"dataset": {
+								"referenceName": "1_bs_workday_source",
+								"type": "DatasetReference",
+								"parameters": {}
+							}
+						}
+					},
+					{
+						"name": "temp_workers_files",
+						"type": "Until",
+						"dependsOn": [
+							{
+								"activity": "num_pages",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"expression": {
+								"value": "@equals(variables('num_pages'),variables('act_page'))",
+								"type": "Expression"
+							},
+							"activities": [
+								{
+									"name": "upd_page_num",
+									"type": "SetVariable",
+									"dependsOn": [
+										{
+											"activity": "upd_page_num_until",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"userProperties": [],
+									"typeProperties": {
+										"variableName": "act_page",
+										"value": {
+											"value": "@string(add(int(variables('act_page_until')),1))",
+											"type": "Expression"
+										}
+									}
+								},
+								{
+									"name": "save_temp_workers",
+									"type": "Copy",
+									"dependsOn": [],
+									"policy": {
+										"timeout": "7.00:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"source": {
+											"type": "XmlSource",
+											"storeSettings": {
+												"type": "HttpReadSettings",
+												"requestMethod": "POST",
+												"additionalHeaders": "content-type: text/xml",
+												"requestBody": {
+													"value": "@{concat('<s:Envelope xmlns:s=\"http://schemas.xmlsoap.org/soap/envelope/\" xmlns:u=\"http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-utility-1.0.xsd\">\n   <s:Header>\n      <h:Workday_Common_Header xmlns:h=\"urn:com.workday/bsvc\" xmlns=\"urn:com.workday/bsvc\" xmlns:xsd=\"http://www.w3.org/2001/XMLSchema\" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\">\n         <Include_Reference_Descriptors_In_Response>true</Include_Reference_Descriptors_In_Response>\n      </h:Workday_Common_Header>\n      <o:Security xmlns:o=\"http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-secext-1.0.xsd\" s:mustUnderstand=\"1\">\n         <o:UsernameToken u:Id=\"uuid-5cea302c-c204-4be1-a0e4-11aa6735daf6-1\">\n            <o:Username>ISUGlobalEngineeringDAWorkday',string('@'),'coke</o:Username>\n            <o:Password>B%lUnAtYK8yT!ZW</o:Password>\n         </o:UsernameToken>\n      </o:Security>\n   </s:Header>\n   <s:Body xmlns:xsd=\"http://www.w3.org/2001/XMLSchema\" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\">\n      <Get_Workers_Request xmlns=\"urn:com.workday/bsvc\" xmlns:a=\"urn:com.workday/bsvc\" a:version=\"v33.1\">\n         <a:Response_Filter>\n            <a:Page>',variables('act_page'),'</a:Page>\n            <a:Count>',variables('num_workers'),'</a:Count>\n         </a:Response_Filter>\n         <a:Response_Group>\n            <a:Include_Reference>true</a:Include_Reference>\n            <a:Include_Personal_Information>true</a:Include_Personal_Information>\n            <a:Include_Employment_Information>true</a:Include_Employment_Information>\n            <a:Include_User_Account>true</a:Include_User_Account>\n         </a:Response_Group>\n      </Get_Workers_Request>\n   </s:Body>\n</s:Envelope>')}",
+													"type": "Expression"
+												},
+												"requestTimeout": "00:10:00"
+											},
+											"formatSettings": {
+												"type": "XmlReadSettings",
+												"validationMode": "none",
+												"namespaces": true
+											}
+										},
+										"sink": {
+											"type": "ParquetSink",
+											"storeSettings": {
+												"type": "AzureBlobFSWriteSettings"
+											},
+											"formatSettings": {
+												"type": "ParquetWriteSettings"
+											}
+										},
+										"enableStaging": false,
+										"translator": {
+											"type": "TabularTranslator",
+											"mappings": [
+												{
+													"source": {
+														"path": "['wd:Worker_Data']['wd:User_ID']"
+													},
+													"sink": {
+														"name": "user_id",
+														"type": "String"
+													}
+												},
+												{
+													"source": {
+														"path": "['wd:Worker_Data']['wd:Worker_ID']"
+													},
+													"sink": {
+														"name": "worker_id",
+														"type": "String"
+													}
+												},
+												{
+													"source": {
+														"path": "['wd:Worker_Data']['wd:Personal_Data']['wd:Contact_Data']['wd:Email_Address_Data'][0]['wd:Email_Address']"
+													},
+													"sink": {
+														"name": "email_address",
+														"type": "String"
+													}
+												},
+												{
+													"source": {
+														"path": "['wd:Worker_Data']['wd:Personal_Data']['wd:Name_Data']['wd:Legal_Name_Data']['wd:Name_Detail_Data']['wd:Prefix_Data']['wd:Title_Descriptor']"
+													},
+													"sink": {
+														"name": "title_descriptor",
+														"type": "String"
+													}
+												},
+												{
+													"source": {
+														"path": "['wd:Worker_Data']['wd:Personal_Data']['wd:Name_Data']['wd:Legal_Name_Data']['wd:Name_Detail_Data']['wd:First_Name']"
+													},
+													"sink": {
+														"name": "first_name",
+														"type": "String"
+													}
+												},
+												{
+													"source": {
+														"path": "['wd:Worker_Data']['wd:Personal_Data']['wd:Name_Data']['wd:Legal_Name_Data']['wd:Name_Detail_Data']['wd:Last_Name']"
+													},
+													"sink": {
+														"name": "last_name",
+														"type": "String"
+													}
+												},
+												{
+													"source": {
+														"path": "['wd:Worker_Data']['wd:Personal_Data']['wd:Name_Data']['wd:Legal_Name_Data']['wd:Name_Detail_Data']['wd:Country_Reference']['wd:@Descriptor']"
+													},
+													"sink": {
+														"name": "country_reference",
+														"type": "String"
+													}
+												},
+												{
+													"source": {
+														"path": "['wd:Worker_Data']['wd:Employment_Data']['wd:Worker_Status_Data']['wd:Active']"
+													},
+													"sink": {
+														"name": "active",
+														"type": "String"
+													}
+												},
+												{
+													"source": {
+														"path": "['wd:Worker_Data']['wd:Employment_Data']['wd:Worker_Status_Data']['wd:Hire_Date']"
+													},
+													"sink": {
+														"name": "hire_date",
+														"type": "String"
+													}
+												},
+												{
+													"source": {
+														"path": "['wd:Worker_Data']['wd:Employment_Data']['wd:Worker_Status_Data']['wd:Active_Status_Date']"
+													},
+													"sink": {
+														"name": "active_status_date",
+														"type": "String"
+													}
+												},
+												{
+													"source": {
+														"path": "['wd:Worker_Data']['wd:Employment_Data']['wd:Worker_Status_Data']['wd:Original_Hire_Date']"
+													},
+													"sink": {
+														"name": "original_hire_sate",
+														"type": "String"
+													}
+												},
+												{
+													"source": {
+														"path": "['wd:Worker_Data']['wd:Employment_Data']['wd:Worker_Status_Data']['wd:Continuous_Service_Date']"
+													},
+													"sink": {
+														"name": "continuous_service_date",
+														"type": "String"
+													}
+												},
+												{
+													"source": {
+														"path": "['wd:Worker_Data']['wd:Employment_Data']['wd:Worker_Status_Data']['wd:First_Day_of_Work']"
+													},
+													"sink": {
+														"name": "first_day_of_work",
+														"type": "String"
+													}
+												},
+												{
+													"source": {
+														"path": "['wd:Worker_Data']['wd:Employment_Data']['wd:Worker_Status_Data']['wd:Seniority_Date']"
+													},
+													"sink": {
+														"name": "seniority_date",
+														"type": "String"
+													}
+												},
+												{
+													"source": {
+														"path": "['wd:Worker_Data']['wd:Employment_Data']['wd:Worker_Status_Data']['wd:Company_Service_Date']"
+													},
+													"sink": {
+														"name": "company_service_date",
+														"type": "String"
+													}
+												},
+												{
+													"source": {
+														"path": "['wd:Worker_Data']['wd:Employment_Data']['wd:Worker_Job_Data']['wd:Position_Data']['wd:Position_ID']"
+													},
+													"sink": {
+														"name": "position_id",
+														"type": "String"
+													}
+												},
+												{
+													"source": {
+														"path": "['wd:Worker_Data']['wd:Employment_Data']['wd:Worker_Job_Data']['wd:Position_Data']['wd:Position_Title']"
+													},
+													"sink": {
+														"name": "position_title",
+														"type": "String"
+													}
+												},
+												{
+													"source": {
+														"path": "['wd:Worker_Data']['wd:Employment_Data']['wd:Worker_Job_Data']['wd:Position_Data']['wd:Business_Title']"
+													},
+													"sink": {
+														"name": "business_title",
+														"type": "String"
+													}
+												},
+												{
+													"source": {
+														"path": "['wd:Worker_Data']['wd:Employment_Data']['wd:Worker_Job_Data']['wd:Position_Data']['wd:Start_Date']"
+													},
+													"sink": {
+														"name": "start_date",
+														"type": "String"
+													}
+												},
+												{
+													"source": {
+														"path": "['wd:Worker_Data']['wd:Employment_Data']['wd:Worker_Job_Data']['wd:Position_Data']['wd:Job_Profile_Summary_Data']['wd:Job_Profile_Name']"
+													},
+													"sink": {
+														"name": "job_profile_name",
+														"type": "String"
+													}
+												},
+												{
+													"source": {
+														"path": "['wd:Worker_Data']['wd:Employment_Data']['wd:Worker_Job_Data']['wd:Position_Data']['wd:Business_Site_Summary_Data']['wd:Name']"
+													},
+													"sink": {
+														"name": "business_site_name",
+														"type": "String"
+													}
+												},
+												{
+													"source": {
+														"path": "['wd:Worker_Descriptor']"
+													},
+													"sink": {
+														"name": "worker_descriptor",
+														"type": "String"
+													}
+												}
+											],
+											"collectionReference": "$['env:Envelope']['env:Body']['wd:Get_Workers_Response']['wd:Response_Data']['wd:Worker']",
+											"mapComplexValuesToString": true
+										}
+									},
+									"inputs": [
+										{
+											"referenceName": "1_bs_workday_source",
+											"type": "DatasetReference",
+											"parameters": {}
+										}
+									],
+									"outputs": [
+										{
+											"referenceName": "2_bs_workday_temp",
+											"type": "DatasetReference",
+											"parameters": {}
+										}
+									]
+								},
+								{
+									"name": "upd_page_num_until",
+									"type": "SetVariable",
+									"dependsOn": [
+										{
+											"activity": "save_temp_workers",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"userProperties": [],
+									"typeProperties": {
+										"variableName": "act_page_until",
+										"value": {
+											"value": "@variables('act_page')",
+											"type": "Expression"
+										}
+									}
+								}
+							],
+							"timeout": "7.00:00:00"
+						}
+					},
+					{
+						"name": "merge_files",
+						"type": "Copy",
+						"dependsOn": [
+							{
+								"activity": "temp_workers_files",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "7.00:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "ParquetSource",
+								"storeSettings": {
+									"type": "AzureBlobFSReadSettings",
+									"recursive": true,
+									"wildcardFolderPath": "WorkDay",
+									"wildcardFileName": "*",
+									"enablePartitionDiscovery": false
+								}
+							},
+							"sink": {
+								"type": "ParquetSink",
+								"storeSettings": {
+									"type": "AzureBlobFSWriteSettings",
+									"copyBehavior": "MergeFiles"
+								},
+								"formatSettings": {
+									"type": "ParquetWriteSettings"
+								}
+							},
+							"enableStaging": false,
+							"translator": {
+								"type": "TabularTranslator",
+								"typeConversion": true,
+								"typeConversionSettings": {
+									"allowDataTruncation": true,
+									"treatBooleanAsNumber": false
+								}
+							}
+						},
+						"inputs": [
+							{
+								"referenceName": "3_bs_workday_sink",
+								"type": "DatasetReference",
+								"parameters": {}
+							}
+						],
+						"outputs": [
+							{
+								"referenceName": "3_bs_workday_sink",
+								"type": "DatasetReference",
+								"parameters": {}
+							}
+						]
+					},
+					{
+						"name": "delete_temp_files",
+						"type": "Delete",
+						"dependsOn": [
+							{
+								"activity": "merge_files",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "7.00:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"dataset": {
+								"referenceName": "3_bs_workday_sink",
+								"type": "DatasetReference",
+								"parameters": {}
+							},
+							"enableLogging": false,
+							"storeSettings": {
+								"type": "AzureBlobFSReadSettings",
+								"recursive": true,
+								"wildcardFileName": "bs_workday_temp*",
+								"enablePartitionDiscovery": false
+							}
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {},
+					"cancelAfter": {}
+				},
+				"variables": {
+					"num_pages": {
+						"type": "String",
+						"defaultValue": "0"
+					},
+					"act_page": {
+						"type": "String",
+						"defaultValue": "1"
+					},
+					"num_workers": {
+						"type": "String",
+						"defaultValue": "999"
+					},
+					"act_page_until": {
+						"type": "String",
+						"defaultValue": "0"
+					}
+				},
+				"folder": {
+					"name": "Workday_Pipelines"
+				},
+				"annotations": [],
+				"lastPublishTime": "2021-10-06T22:13:43Z"
+			},
+			"dependsOn": [
+				"[concat(variables('workspaceId'), '/datasets/1_bs_workday_source')]",
+				"[concat(variables('workspaceId'), '/datasets/3_bs_workday_sink')]",
+				"[concat(variables('workspaceId'), '/datasets/2_bs_workday_temp')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/1_bs_azuread_source')]",
+			"type": "Microsoft.Synapse/workspaces/datasets",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "restapigraphapp",
+					"type": "LinkedServiceReference"
+				},
+				"folder": {
+					"name": "AzureAD_DataSets"
+				},
+				"annotations": [],
+				"type": "RestResource",
+				"typeProperties": {},
+				"schema": []
+			},
+			"dependsOn": [
+				"[concat(variables('workspaceId'), '/linkedServices/restapigraphapp')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/1_bs_workday_source')]",
+			"type": "Microsoft.Synapse/workspaces/datasets",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "soapworkday",
+					"type": "LinkedServiceReference"
+				},
+				"folder": {
+					"name": "Workday_DataSets"
+				},
+				"annotations": [],
+				"type": "Xml",
+				"typeProperties": {
+					"location": {
+						"type": "HttpServerLocation"
+					}
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('workspaceId'), '/linkedServices/soapworkday')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/2_bs_azuread_sink')]",
+			"type": "Microsoft.Synapse/workspaces/datasets",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "identitylake_synapse_workspace",
+					"type": "LinkedServiceReference"
+				},
+				"folder": {
+					"name": "AzureAD_DataSets"
+				},
+				"annotations": [],
+				"type": "Parquet",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobFSLocation",
+						"fileName": "bs_azuread_sink.parquet",
+						"folderPath": "AzureActiveDirectory",
+						"fileSystem": "landingzone"
+					},
+					"compressionCodec": "gzip"
+				},
+				"schema": []
+			},
+			"dependsOn": [
+				"[concat(variables('workspaceId'), '/linkedServices/identitylake_synapse_workspace')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/2_bs_covisint_temp')]",
+			"type": "Microsoft.Synapse/workspaces/datasets",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "identitylake_synapse_workspace",
+					"type": "LinkedServiceReference"
+				},
+				"folder": {
+					"name": "Covisint_DataSets"
+				},
+				"annotations": [],
+				"type": "Parquet",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobFSLocation",
+						"fileName": {
+							"value": "@concat('bs_covisint_sink_temp_', utcNow() , '.parquet')",
+							"type": "Expression"
+						},
+						"folderPath": "COVISINT",
+						"fileSystem": "landingzone"
+					},
+					"compressionCodec": "gzip"
+				},
+				"schema": []
+			},
+			"dependsOn": [
+				"[concat(variables('workspaceId'), '/linkedServices/identitylake_synapse_workspace')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/2_bs_koad_sink')]",
+			"type": "Microsoft.Synapse/workspaces/datasets",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "identitylake_synapse_workspace",
+					"type": "LinkedServiceReference"
+				},
+				"folder": {
+					"name": "LDAP_DataSets"
+				},
+				"annotations": [],
+				"type": "Parquet",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobFSLocation",
+						"fileName": "bs_opad_KOAD_sink.parquet",
+						"folderPath": "OnPremiseActiveDirectory/test",
+						"fileSystem": "landingzone"
+					},
+					"compressionCodec": "gzip"
+				},
+				"schema": []
+			},
+			"dependsOn": [
+				"[concat(variables('workspaceId'), '/linkedServices/identitylake_synapse_workspace')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/2_bs_koldap_sink')]",
+			"type": "Microsoft.Synapse/workspaces/datasets",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "identitylake_synapse_workspace",
+					"type": "LinkedServiceReference"
+				},
+				"folder": {
+					"name": "LDAP_DataSets"
+				},
+				"annotations": [],
+				"type": "Parquet",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobFSLocation",
+						"fileName": "bs_opad_KOLDAP_sink.parquet",
+						"folderPath": "OnPremiseActiveDirectory/test",
+						"fileSystem": "landingzone"
+					},
+					"compressionCodec": "gzip"
+				},
+				"schema": []
+			},
+			"dependsOn": [
+				"[concat(variables('workspaceId'), '/linkedServices/identitylake_synapse_workspace')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/2_bs_workday_temp')]",
+			"type": "Microsoft.Synapse/workspaces/datasets",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "identitylake_synapse_workspace",
+					"type": "LinkedServiceReference"
+				},
+				"folder": {
+					"name": "Workday_DataSets"
+				},
+				"annotations": [],
+				"type": "Parquet",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobFSLocation",
+						"fileName": {
+							"value": "@concat(string('bs_workday_temp_'),utcnow(),'.parquet')",
+							"type": "Expression"
+						},
+						"folderPath": "WorkDay",
+						"fileSystem": "landingzone"
+					},
+					"compressionCodec": "gzip"
+				},
+				"schema": []
+			},
+			"dependsOn": [
+				"[concat(variables('workspaceId'), '/linkedServices/identitylake_synapse_workspace')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/3_bs_covisint_sink')]",
+			"type": "Microsoft.Synapse/workspaces/datasets",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "identitylake_synapse_workspace",
+					"type": "LinkedServiceReference"
+				},
+				"folder": {
+					"name": "Covisint_DataSets"
+				},
+				"annotations": [],
+				"type": "Parquet",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobFSLocation",
+						"fileName": "bs_covisint_sink.parquet",
+						"folderPath": "COVISINT",
+						"fileSystem": "landingzone"
+					},
+					"compressionCodec": "gzip"
+				},
+				"schema": []
+			},
+			"dependsOn": [
+				"[concat(variables('workspaceId'), '/linkedServices/identitylake_synapse_workspace')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/3_bs_koad_source')]",
+			"type": "Microsoft.Synapse/workspaces/datasets",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "identitylake_synapse_workspace",
+					"type": "LinkedServiceReference"
+				},
+				"folder": {
+					"name": "LDAP_DataSets"
+				},
+				"annotations": [],
+				"type": "Json",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobFSLocation",
+						"fileName": "bs_opad_KOAD_sink.json.gz",
+						"folderPath": "OnPremiseActiveDirectory/test",
+						"fileSystem": "landingzone"
+					},
+					"compression": {
+						"type": "gzip",
+						"level": "Fastest"
+					}
+				},
+				"schema": {
+					"type": "object",
+					"properties": {
+						"users": {
+							"type": "array",
+							"items": {
+								"type": "object",
+								"properties": {
+									"raw_dn": {
+										"type": "string"
+									},
+									"dn": {
+										"type": "string"
+									},
+									"raw_attributes": {
+										"type": "object",
+										"properties": {
+											"objectClass": {
+												"type": "string"
+											},
+											"cn": {
+												"type": "string"
+											},
+											"distinguishedName": {
+												"type": "string"
+											},
+											"instanceType": {
+												"type": "string"
+											},
+											"whenCreated": {
+												"type": "string"
+											},
+											"whenChanged": {
+												"type": "string"
+											},
+											"uSNCreated": {
+												"type": "string"
+											},
+											"uSNChanged": {
+												"type": "string"
+											},
+											"name": {
+												"type": "string"
+											},
+											"givenname": {
+												"type": "string"
+											},
+											"displayname": {
+												"type": "string"
+											},
+											"surname": {
+												"type": "string"
+											},
+											"objectGUID": {
+												"type": "string"
+											},
+											"objectSid": {
+												"type": "string"
+											},
+											"sAMAccountName": {
+												"type": "string"
+											},
+											"dNSHostName": {
+												"type": "string"
+											},
+											"servicePrincipalName": {
+												"type": "string"
+											},
+											"objectCategory": {
+												"type": "string"
+											},
+											"dSCorePropagationData": {
+												"type": "string"
+											},
+											"lastLogonTimestamp": {
+												"type": "string"
+											},
+											"userAccountControl": {
+												"type": "string"
+											},
+											"memberOf": {
+												"type": "string"
+											},
+											"pwdLastSet": {
+												"type": "string"
+											},
+											"primaryGroupID": {
+												"type": "string"
+											}
+										}
+									}
+								}
+							}
+						}
+					}
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('workspaceId'), '/linkedServices/identitylake_synapse_workspace')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/3_bs_koldap_source')]",
+			"type": "Microsoft.Synapse/workspaces/datasets",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "identitylake_synapse_workspace",
+					"type": "LinkedServiceReference"
+				},
+				"folder": {
+					"name": "LDAP_DataSets"
+				},
+				"annotations": [],
+				"type": "Json",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobFSLocation",
+						"fileName": "bs_opad_KOLDAP_sink.json.gz",
+						"folderPath": "OnPremiseActiveDirectory/koldap",
+						"fileSystem": "landingzone"
+					},
+					"compression": {
+						"type": "gzip",
+						"level": "Fastest"
+					}
+				},
+				"schema": {}
+			},
+			"dependsOn": [
+				"[concat(variables('workspaceId'), '/linkedServices/identitylake_synapse_workspace')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/3_bs_workday_sink')]",
+			"type": "Microsoft.Synapse/workspaces/datasets",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "identitylake_synapse_workspace",
+					"type": "LinkedServiceReference"
+				},
+				"folder": {
+					"name": "Workday_DataSets"
+				},
+				"annotations": [],
+				"type": "Parquet",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobFSLocation",
+						"fileName": "bs_workday_sink.parquet",
+						"folderPath": "WorkDay",
+						"fileSystem": "landingzone"
+					},
+					"compressionCodec": "gzip"
+				},
+				"schema": []
+			},
+			"dependsOn": [
+				"[concat(variables('workspaceId'), '/linkedServices/identitylake_synapse_workspace')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/bs_covisint_source')]",
+			"type": "Microsoft.Synapse/workspaces/datasets",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "HttpCovisintUsers",
+					"type": "LinkedServiceReference",
+					"parameters": {
+						"page": "1",
+						"page_size": "200"
+					}
+				},
+				"parameters": {
+					"page_size": {
+						"type": "string",
+						"defaultValue": "200"
+					},
+					"page": {
+						"type": "string",
+						"defaultValue": "1"
+					}
+				},
+				"folder": {
+					"name": "Covisint_DataSets"
+				},
+				"annotations": [],
+				"type": "Json",
+				"typeProperties": {
+					"location": {
+						"type": "HttpServerLocation",
+						"relativeUrl": {
+							"value": "@concat('?page=', dataset().page, '&pageSize=', dataset().page_size)",
+							"type": "Expression"
+						}
+					}
+				},
+				"schema": {}
+			},
+			"dependsOn": [
+				"[concat(variables('workspaceId'), '/linkedServices/HttpCovisintUsers')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/HttpCovisintUsers')]",
+			"type": "Microsoft.Synapse/workspaces/linkedServices",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"parameters": {
+					"page": {
+						"type": "string",
+						"defaultValue": "1"
+					},
+					"page_size": {
+						"type": "string",
+						"defaultValue": "200"
+					}
+				},
+				"annotations": [],
+				"type": "HttpServer",
+				"typeProperties": {
+					"url": "[parameters('HttpCovisintUsers_properties_typeProperties_url')]",
+					"enableServerCertificateValidation": true,
+					"authenticationType": "Anonymous"
+				},
+				"connectVia": {
+					"referenceName": "AutoResolveIntegrationRuntime",
+					"type": "IntegrationRuntimeReference"
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('workspaceId'), '/integrationRuntimes/AutoResolveIntegrationRuntime')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/identitylake-synapse-WorkspaceDefaultSqlServer')]",
+			"type": "Microsoft.Synapse/workspaces/linkedServices",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"parameters": {
+					"DBName": {
+						"type": "String"
+					}
+				},
+				"annotations": [],
+				"type": "AzureSqlDW",
+				"typeProperties": {
+					"connectionString": "[parameters('identitylake-synapse-WorkspaceDefaultSqlServer_connectionString')]"
+				},
+				"connectVia": {
+					"referenceName": "AutoResolveIntegrationRuntime",
+					"type": "IntegrationRuntimeReference"
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('workspaceId'), '/integrationRuntimes/AutoResolveIntegrationRuntime')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/identitylake-synapse-WorkspaceDefaultStorage')]",
+			"type": "Microsoft.Synapse/workspaces/linkedServices",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"annotations": [],
+				"type": "AzureBlobFS",
+				"typeProperties": {
+					"url": "[parameters('identitylake-synapse-WorkspaceDefaultStorage_properties_typeProperties_url')]"
+				},
+				"connectVia": {
+					"referenceName": "AutoResolveIntegrationRuntime",
+					"type": "IntegrationRuntimeReference"
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('workspaceId'), '/integrationRuntimes/AutoResolveIntegrationRuntime')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/identitylake_synapse_workspace')]",
+			"type": "Microsoft.Synapse/workspaces/linkedServices",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"annotations": [],
+				"type": "AzureBlobFS",
+				"typeProperties": {
+					"url": "[parameters('identitylake_synapse_workspace_properties_typeProperties_url')]",
+					"accountKey": {
+						"type": "SecureString",
+						"value": "[parameters('identitylake_synapse_workspace_accountKey')]"
+					}
+				},
+				"connectVia": {
+					"referenceName": "AutoResolveIntegrationRuntime",
+					"type": "IntegrationRuntimeReference"
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('workspaceId'), '/integrationRuntimes/AutoResolveIntegrationRuntime')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/restapigraphapp')]",
+			"type": "Microsoft.Synapse/workspaces/linkedServices",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"annotations": [],
+				"type": "RestService",
+				"typeProperties": {
+					"url": "[parameters('restapigraphapp_properties_typeProperties_url')]",
+					"enableServerCertificateValidation": true,
+					"authenticationType": "Anonymous"
+				},
+				"connectVia": {
+					"referenceName": "AutoResolveIntegrationRuntime",
+					"type": "IntegrationRuntimeReference"
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('workspaceId'), '/integrationRuntimes/AutoResolveIntegrationRuntime')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/soapworkday')]",
+			"type": "Microsoft.Synapse/workspaces/linkedServices",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"annotations": [],
+				"type": "HttpServer",
+				"typeProperties": {
+					"url": "[parameters('soapworkday_properties_typeProperties_url')]",
+					"enableServerCertificateValidation": false,
+					"authenticationType": "Basic",
+					"userName": "[parameters('soapworkday_properties_typeProperties_userName')]",
+					"password": {
+						"type": "SecureString",
+						"value": "[parameters('soapworkday_password')]"
+					}
+				},
+				"connectVia": {
+					"referenceName": "AutoResolveIntegrationRuntime",
+					"type": "IntegrationRuntimeReference"
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('workspaceId'), '/integrationRuntimes/AutoResolveIntegrationRuntime')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/AutoResolveIntegrationRuntime')]",
+			"type": "Microsoft.Synapse/workspaces/integrationRuntimes",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"type": "Managed",
+				"typeProperties": {
+					"computeProperties": {
+						"location": "AutoResolve",
+						"dataFlowProperties": {
+							"computeType": "General",
+							"coreCount": 8,
+							"timeToLive": 0,
+							"cleanup": true
+						},
+						"pipelineExternalComputeScaleProperties": {
+							"timeToLive": 60
+						}
+					}
+				},
+				"managedVirtualNetwork": {
+					"type": "ManagedVirtualNetworkReference",
+					"referenceName": "default"
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('workspaceId'), '/managedVirtualNetworks/default')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/WorkspaceSystemIdentity')]",
+			"type": "Microsoft.Synapse/workspaces/credentials",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"type": "ManagedIdentity",
+				"typeProperties": {}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/default')]",
+			"type": "Microsoft.Synapse/workspaces/managedVirtualNetworks",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/default/synapse-ws-sql--identitylake-synapse')]",
+			"type": "Microsoft.Synapse/workspaces/managedVirtualNetworks/managedPrivateEndpoints",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"privateLinkResourceId": "/subscriptions/0d0df1c1-84dd-490b-bed1-07244f2dd931/resourceGroups/rg-ge-identitylake/providers/Microsoft.Synapse/workspaces/identitylake-synapse",
+				"groupId": "sql",
+				"fqdns": [
+					"identitylake-synapse.19b74efa-6731-46a3-b130-f0d318f37556.sql.azuresynapse.net"
+				]
+			},
+			"dependsOn": [
+				"[concat(variables('workspaceId'), '/managedVirtualNetworks/default')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/default/synapse-ws-sqlOnDemand--identitylake-synapse')]",
+			"type": "Microsoft.Synapse/workspaces/managedVirtualNetworks/managedPrivateEndpoints",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"privateLinkResourceId": "/subscriptions/0d0df1c1-84dd-490b-bed1-07244f2dd931/resourceGroups/rg-ge-identitylake/providers/Microsoft.Synapse/workspaces/identitylake-synapse",
+				"groupId": "sqlOnDemand",
+				"fqdns": [
+					"identitylake-synapse-ondemand.19b74efa-6731-46a3-b130-f0d318f37556.sql.azuresynapse.net"
+				]
+			},
+			"dependsOn": [
+				"[concat(variables('workspaceId'), '/managedVirtualNetworks/default')]"
+			]
+		}
+	]
+}

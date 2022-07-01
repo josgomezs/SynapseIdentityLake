@@ -1,0 +1,727 @@
+{
+	"name": "pl_covisint_identitylake",
+	"properties": {
+		"activities": [
+			{
+				"name": "covisint_token",
+				"type": "SetVariable",
+				"dependsOn": [
+					{
+						"activity": "getCovisintToken",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"variableName": "covisint_token",
+					"value": {
+						"value": "@activity('getCovisintToken').output.access_token",
+						"type": "Expression"
+					}
+				}
+			},
+			{
+				"name": "Pagination",
+				"type": "Until",
+				"dependsOn": [
+					{
+						"activity": "covisint_token",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"expression": {
+						"value": "@equals(int(variables('users_written_in_cycle')), 0)",
+						"type": "Expression"
+					},
+					"activities": [
+						{
+							"name": "getCovisintUsersLoop",
+							"type": "Copy",
+							"dependsOn": [],
+							"policy": {
+								"timeout": "7.00:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"source": {
+									"type": "JsonSource",
+									"storeSettings": {
+										"type": "HttpReadSettings",
+										"requestMethod": "GET",
+										"additionalHeaders": {
+											"value": "@{concat('Accept:application/vnd.com.covisint.platform.person.v1+json;includedivision=true;includelastlogindate=true;includeNotificationPrefs=true\nAuthorization:Bearer ',variables('covisint_token'))}",
+											"type": "Expression"
+										},
+										"requestTimeout": ""
+									},
+									"formatSettings": {
+										"type": "JsonReadSettings"
+									}
+								},
+								"sink": {
+									"type": "ParquetSink",
+									"storeSettings": {
+										"type": "AzureBlobFSWriteSettings"
+									},
+									"formatSettings": {
+										"type": "ParquetWriteSettings"
+									}
+								},
+								"enableStaging": false,
+								"translator": {
+									"type": "TabularTranslator",
+									"mappings": [
+										{
+											"source": {
+												"path": "$['id']"
+											},
+											"sink": {
+												"name": "id",
+												"type": "String"
+											}
+										},
+										{
+											"source": {
+												"path": "$['version']"
+											},
+											"sink": {
+												"name": "version",
+												"type": "String"
+											}
+										},
+										{
+											"source": {
+												"path": "$['creator']"
+											},
+											"sink": {
+												"name": "creator",
+												"type": "String"
+											}
+										},
+										{
+											"source": {
+												"path": "$['creation']"
+											},
+											"sink": {
+												"name": "creation",
+												"type": "String"
+											}
+										},
+										{
+											"source": {
+												"path": "$['realm']"
+											},
+											"sink": {
+												"name": "realm",
+												"type": "String"
+											}
+										},
+										{
+											"source": {
+												"path": "$['status']"
+											},
+											"sink": {
+												"name": "status",
+												"type": "String"
+											}
+										},
+										{
+											"source": {
+												"path": "$['phoneVerifiedMode']"
+											},
+											"sink": {
+												"name": "phoneVerifiedMode",
+												"type": "String"
+											}
+										},
+										{
+											"source": {
+												"path": "$['emailVerifiedMode']"
+											},
+											"sink": {
+												"name": "emailVerifiedMode",
+												"type": "String"
+											}
+										},
+										{
+											"source": {
+												"path": "$['preferredMode']"
+											},
+											"sink": {
+												"name": "preferredMode",
+												"type": "String"
+											}
+										},
+										{
+											"source": {
+												"path": "$['name']['given']"
+											},
+											"sink": {
+												"name": "given",
+												"type": "String"
+											}
+										},
+										{
+											"source": {
+												"path": "$['name']['surname']"
+											},
+											"sink": {
+												"name": "surname",
+												"type": "String"
+											}
+										},
+										{
+											"source": {
+												"path": "$['name']['prefix']"
+											},
+											"sink": {
+												"name": "prefix",
+												"type": "String"
+											}
+										},
+										{
+											"source": {
+												"path": "$['addresses'][0]['streets'][0]"
+											},
+											"sink": {
+												"name": "items",
+												"type": "String"
+											}
+										},
+										{
+											"source": {
+												"path": "$['addresses'][0]['city']"
+											},
+											"sink": {
+												"name": "city",
+												"type": "String"
+											}
+										},
+										{
+											"source": {
+												"path": "$['addresses'][0]['state']"
+											},
+											"sink": {
+												"name": "state",
+												"type": "String"
+											}
+										},
+										{
+											"source": {
+												"path": "$['addresses'][0]['postal']"
+											},
+											"sink": {
+												"name": "postal",
+												"type": "String"
+											}
+										},
+										{
+											"source": {
+												"path": "$['addresses'][0]['country']"
+											},
+											"sink": {
+												"name": "country",
+												"type": "String"
+											}
+										},
+										{
+											"source": {
+												"path": "$['language']"
+											},
+											"sink": {
+												"name": "language",
+												"type": "String"
+											}
+										},
+										{
+											"source": {
+												"path": "$['timezone']"
+											},
+											"sink": {
+												"name": "timezone",
+												"type": "String"
+											}
+										},
+										{
+											"source": {
+												"path": "$['phones'][0]['type']"
+											},
+											"sink": {
+												"name": "phones'][0]['type",
+												"type": "String"
+											}
+										},
+										{
+											"source": {
+												"path": "$['phones'][0]['number']"
+											},
+											"sink": {
+												"name": "number",
+												"type": "String"
+											}
+										},
+										{
+											"source": {
+												"path": "$['email']"
+											},
+											"sink": {
+												"name": "email",
+												"type": "String"
+											}
+										},
+										{
+											"source": {
+												"path": "$['organization']['id']"
+											},
+											"sink": {
+												"name": "organization_id",
+												"type": "String"
+											}
+										},
+										{
+											"source": {
+												"path": "$['organization']['type']"
+											},
+											"sink": {
+												"name": "organization_type",
+												"type": "String"
+											}
+										},
+										{
+											"source": {
+												"path": "$['organization']['realm']"
+											},
+											"sink": {
+												"name": "organization_realm",
+												"type": "String"
+											}
+										},
+										{
+											"source": {
+												"path": "$['attributes'][0]['id']"
+											},
+											"sink": {
+												"name": "attributes'][0]['id",
+												"type": "String"
+											}
+										},
+										{
+											"source": {
+												"path": "$['attributes'][0]['name']"
+											},
+											"sink": {
+												"name": "name",
+												"type": "String"
+											}
+										},
+										{
+											"source": {
+												"path": "$['attributes'][0]['value']"
+											},
+											"sink": {
+												"name": "value",
+												"type": "String"
+											}
+										},
+										{
+											"source": {
+												"path": "$['username']"
+											},
+											"sink": {
+												"name": "username",
+												"type": "String"
+											}
+										},
+										{
+											"source": {
+												"path": "$['authDomain']"
+											},
+											"sink": {
+												"name": "authDomain",
+												"type": "String"
+											}
+										},
+										{
+											"source": {
+												"path": "$['title']"
+											},
+											"sink": {
+												"name": "title",
+												"type": "String"
+											}
+										},
+										{
+											"source": {
+												"path": "$['activatedDate']"
+											},
+											"sink": {
+												"name": "activatedDate",
+												"type": "String"
+											}
+										}
+									]
+								}
+							},
+							"inputs": [
+								{
+									"referenceName": "bs_covisint_source1",
+									"type": "DatasetReference",
+									"parameters": {
+										"page_size": {
+											"value": "@variables('page_size')",
+											"type": "Expression"
+										},
+										"page": {
+											"value": "@variables('page_number')",
+											"type": "Expression"
+										}
+									}
+								}
+							],
+							"outputs": [
+								{
+									"referenceName": "2_bs_covisint_temp1",
+									"type": "DatasetReference"
+								}
+							]
+						},
+						{
+							"name": "page_number_in_loop",
+							"type": "SetVariable",
+							"dependsOn": [
+								{
+									"activity": "getCovisintUsersLoop",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"userProperties": [],
+							"typeProperties": {
+								"variableName": "page_number_in_loop",
+								"value": {
+									"value": "@variables('page_number')",
+									"type": "Expression"
+								}
+							}
+						},
+						{
+							"name": "rest_call_output",
+							"type": "SetVariable",
+							"dependsOn": [
+								{
+									"activity": "page_number",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"userProperties": [],
+							"typeProperties": {
+								"variableName": "users_written_in_cycle",
+								"value": {
+									"value": "@string(activity('getCovisintUsersLoop').output.rowsRead)",
+									"type": "Expression"
+								}
+							}
+						},
+						{
+							"name": "page_number",
+							"type": "SetVariable",
+							"dependsOn": [
+								{
+									"activity": "page_number_in_loop",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"userProperties": [],
+							"typeProperties": {
+								"variableName": "page_number",
+								"value": {
+									"value": "@string(add(int(variables('page_number_in_loop')),1))",
+									"type": "Expression"
+								}
+							}
+						},
+						{
+							"name": "If Valid Token",
+							"type": "IfCondition",
+							"dependsOn": [
+								{
+									"activity": "getCovisintUsersLoop",
+									"dependencyConditions": [
+										"Failed"
+									]
+								}
+							],
+							"userProperties": [],
+							"typeProperties": {
+								"expression": {
+									"value": "@or(equals(activity('getCovisintUsersLoop').output.errors[0].Code, 21271), equals(activity('getCovisintUsersLoop').output.errors[0].Code, 9756))",
+									"type": "Expression"
+								},
+								"ifTrueActivities": [
+									{
+										"name": "covisint_token_refreshed",
+										"type": "SetVariable",
+										"dependsOn": [
+											{
+												"activity": "refreshCovisintToken",
+												"dependencyConditions": [
+													"Succeeded"
+												]
+											}
+										],
+										"userProperties": [],
+										"typeProperties": {
+											"variableName": "covisint_token",
+											"value": {
+												"value": "@activity('refreshCovisintToken').output.access_token",
+												"type": "Expression"
+											}
+										}
+									},
+									{
+										"name": "refreshCovisintToken",
+										"type": "WebActivity",
+										"dependsOn": [],
+										"policy": {
+											"timeout": "7.00:00:00",
+											"retry": 0,
+											"retryIntervalInSeconds": 30,
+											"secureOutput": false,
+											"secureInput": false
+										},
+										"userProperties": [],
+										"typeProperties": {
+											"url": "https://api.us1.covisint.com/oauth/v3/token",
+											"method": "POST",
+											"headers": {
+												"Content-Type": "application/x-www-form-urlencoded",
+												"Authorization": "Basic VTJZYUNMYVdBam1lWWh3anNHUU1TYk1NTU54Z3dBcG06QWxLZ2dOR2g4Nm03S2dCSw=="
+											},
+											"body": "grant_type=client_credentials",
+											"authentication": {
+												"type": "Basic",
+												"username": "U2YaCLaWAjmeYhwjsGQMSbMMMNxgwApm",
+												"password": {
+													"type": "SecureString",
+													"value": "**********"
+												}
+											}
+										}
+									}
+								]
+							}
+						}
+					],
+					"timeout": "7.00:00:00"
+				}
+			},
+			{
+				"name": "mergeTempFiles",
+				"type": "Copy",
+				"dependsOn": [
+					{
+						"activity": "Pagination",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "ParquetSource",
+						"storeSettings": {
+							"type": "AzureBlobFSReadSettings",
+							"recursive": true,
+							"wildcardFolderPath": {
+								"value": "@pipeline().globalParameters.covisint_directory",
+								"type": "Expression"
+							},
+							"wildcardFileName": "*",
+							"enablePartitionDiscovery": false
+						}
+					},
+					"sink": {
+						"type": "ParquetSink",
+						"storeSettings": {
+							"type": "AzureBlobFSWriteSettings",
+							"copyBehavior": "MergeFiles"
+						},
+						"formatSettings": {
+							"type": "ParquetWriteSettings"
+						}
+					},
+					"enableStaging": false,
+					"translator": {
+						"type": "TabularTranslator",
+						"typeConversion": true,
+						"typeConversionSettings": {
+							"allowDataTruncation": true,
+							"treatBooleanAsNumber": false
+						}
+					}
+				},
+				"inputs": [
+					{
+						"referenceName": "2_bs_covisint_temp1",
+						"type": "DatasetReference"
+					}
+				],
+				"outputs": [
+					{
+						"referenceName": "3_bs_covisint_sink1",
+						"type": "DatasetReference"
+					}
+				]
+			},
+			{
+				"name": "deleteTempFiles",
+				"type": "Delete",
+				"dependsOn": [
+					{
+						"activity": "mergeTempFiles",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"dataset": {
+						"referenceName": "2_bs_covisint_temp1",
+						"type": "DatasetReference"
+					},
+					"enableLogging": false,
+					"storeSettings": {
+						"type": "AzureBlobFSReadSettings",
+						"recursive": true,
+						"wildcardFileName": "bs_covisint_sink_temp*",
+						"enablePartitionDiscovery": false
+					}
+				}
+			},
+			{
+				"name": "getCovisintToken",
+				"type": "WebActivity",
+				"dependsOn": [
+					{
+						"activity": "clean_covisint_path",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"url": "https://api.us1.covisint.com/oauth/v3/token",
+					"method": "POST",
+					"headers": {
+						"Content-Type": "application/x-www-form-urlencoded",
+						"Authorization": "Basic VTJZYUNMYVdBam1lWWh3anNHUU1TYk1NTU54Z3dBcG06QWxLZ2dOR2g4Nm03S2dCSw=="
+					},
+					"body": "grant_type=client_credentials",
+					"authentication": {
+						"type": "Basic",
+						"username": "U2YaCLaWAjmeYhwjsGQMSbMMMNxgwApm",
+						"password": {
+							"type": "SecureString",
+							"value": "**********"
+						}
+					}
+				}
+			},
+			{
+				"name": "clean_covisint_path",
+				"type": "Delete",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"dataset": {
+						"referenceName": "3_bs_covisint_sink1",
+						"type": "DatasetReference"
+					},
+					"enableLogging": false,
+					"storeSettings": {
+						"type": "AzureBlobFSReadSettings",
+						"recursive": true,
+						"wildcardFileName": "bs_covisint_sink*",
+						"enablePartitionDiscovery": false
+					}
+				}
+			}
+		],
+		"variables": {
+			"get_token_reponse": {
+				"type": "String"
+			},
+			"covisint_token": {
+				"type": "String"
+			},
+			"page_number": {
+				"type": "String",
+				"defaultValue": "1"
+			},
+			"users_written_in_cycle": {
+				"type": "String"
+			},
+			"response_code": {
+				"type": "String"
+			},
+			"page_size": {
+				"type": "String",
+				"defaultValue": "200"
+			},
+			"page_number_in_loop": {
+				"type": "String"
+			}
+		},
+		"folder": {
+			"name": "Covisint_Pipelines"
+		},
+		"annotations": [],
+		"lastPublishTime": "2022-06-30T21:42:08Z"
+	}
+}

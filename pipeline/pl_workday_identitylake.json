@@ -415,7 +415,7 @@
 							"type": "AzureBlobFSReadSettings",
 							"recursive": true,
 							"wildcardFolderPath": {
-								"value": "@pipeline().globalParameters.workday_directory",
+								"value": "@pipeline().parameters.workday_directory",
 								"type": "Expression"
 							},
 							"wildcardFileName": "*",
@@ -515,6 +515,12 @@
 				}
 			}
 		],
+		"parameters": {
+			"workday_directory": {
+				"type": "string",
+				"defaultValue": "WorkDay"
+			}
+		},
 		"variables": {
 			"num_pages": {
 				"type": "String",

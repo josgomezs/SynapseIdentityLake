@@ -556,7 +556,7 @@
 							"type": "AzureBlobFSReadSettings",
 							"recursive": true,
 							"wildcardFolderPath": {
-								"value": "@pipeline().globalParameters.covisint_directory",
+								"value": "@pipeline().parameters.covisint_directory",
 								"type": "Expression"
 							},
 							"wildcardFileName": "*",
@@ -693,6 +693,12 @@
 				}
 			}
 		],
+		"parameters": {
+			"covisint_directory": {
+				"type": "string",
+				"defaultValue": "COVISINT"
+			}
+		},
 		"variables": {
 			"get_token_reponse": {
 				"type": "String"

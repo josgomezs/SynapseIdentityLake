@@ -26,7 +26,14 @@
 			{
 				"name": "obtain_pages",
 				"type": "Lookup",
-				"dependsOn": [],
+				"dependsOn": [
+					{
+						"activity": "clean_workday_path",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
 				"policy": {
 					"timeout": "7.00:00:00",
 					"retry": 0,
@@ -55,7 +62,7 @@
 						}
 					},
 					"dataset": {
-						"referenceName": "1_bs_workday_source",
+						"referenceName": "1_bs_workday_source1",
 						"type": "DatasetReference"
 					}
 				}
@@ -347,13 +354,13 @@
 							},
 							"inputs": [
 								{
-									"referenceName": "1_bs_workday_source",
+									"referenceName": "1_bs_workday_source1",
 									"type": "DatasetReference"
 								}
 							],
 							"outputs": [
 								{
-									"referenceName": "2_bs_workday_temp",
+									"referenceName": "2_bs_workday_temp1",
 									"type": "DatasetReference"
 								}
 							]
@@ -407,7 +414,10 @@
 						"storeSettings": {
 							"type": "AzureBlobFSReadSettings",
 							"recursive": true,
-							"wildcardFolderPath": "WorkDay",
+							"wildcardFolderPath": {
+								"value": "@pipeline().parameters.workday_directory",
+								"type": "Expression"
+							},
 							"wildcardFileName": "*",
 							"enablePartitionDiscovery": false
 						}
@@ -434,13 +444,13 @@
 				},
 				"inputs": [
 					{
-						"referenceName": "3_bs_workday_sink",
+						"referenceName": "3_bs_workday_sink1",
 						"type": "DatasetReference"
 					}
 				],
 				"outputs": [
 					{
-						"referenceName": "3_bs_workday_sink",
+						"referenceName": "3_bs_workday_sink1",
 						"type": "DatasetReference"
 					}
 				]
@@ -466,7 +476,7 @@
 				"userProperties": [],
 				"typeProperties": {
 					"dataset": {
-						"referenceName": "3_bs_workday_sink",
+						"referenceName": "3_bs_workday_sink1",
 						"type": "DatasetReference"
 					},
 					"enableLogging": false,
@@ -477,8 +487,40 @@
 						"enablePartitionDiscovery": false
 					}
 				}
+			},
+			{
+				"name": "clean_workday_path",
+				"type": "Delete",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"dataset": {
+						"referenceName": "3_bs_workday_sink1",
+						"type": "DatasetReference"
+					},
+					"enableLogging": false,
+					"storeSettings": {
+						"type": "AzureBlobFSReadSettings",
+						"recursive": true,
+						"wildcardFileName": "bs_workday_sink*",
+						"enablePartitionDiscovery": false
+					}
+				}
 			}
 		],
+		"parameters": {
+			"workday_directory": {
+				"type": "string",
+				"defaultValue": "WorkDay"
+			}
+		},
 		"variables": {
 			"num_pages": {
 				"type": "String",
@@ -501,6 +543,6 @@
 			"name": "Workday_Pipelines"
 		},
 		"annotations": [],
-		"lastPublishTime": "2021-10-06T22:13:43Z"
+		"lastPublishTime": "2022-06-30T21:21:07Z"
 	}
 }

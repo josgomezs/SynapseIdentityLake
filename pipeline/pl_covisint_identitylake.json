@@ -374,7 +374,7 @@
 							},
 							"inputs": [
 								{
-									"referenceName": "bs_covisint_source",
+									"referenceName": "bs_covisint_source1",
 									"type": "DatasetReference",
 									"parameters": {
 										"page_size": {
@@ -390,10 +390,70 @@
 							],
 							"outputs": [
 								{
-									"referenceName": "2_bs_covisint_temp",
+									"referenceName": "2_bs_covisint_temp1",
 									"type": "DatasetReference"
 								}
 							]
+						},
+						{
+							"name": "page_number_in_loop",
+							"type": "SetVariable",
+							"dependsOn": [
+								{
+									"activity": "getCovisintUsersLoop",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"userProperties": [],
+							"typeProperties": {
+								"variableName": "page_number_in_loop",
+								"value": {
+									"value": "@variables('page_number')",
+									"type": "Expression"
+								}
+							}
+						},
+						{
+							"name": "rest_call_output",
+							"type": "SetVariable",
+							"dependsOn": [
+								{
+									"activity": "page_number",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"userProperties": [],
+							"typeProperties": {
+								"variableName": "users_written_in_cycle",
+								"value": {
+									"value": "@string(activity('getCovisintUsersLoop').output.rowsRead)",
+									"type": "Expression"
+								}
+							}
+						},
+						{
+							"name": "page_number",
+							"type": "SetVariable",
+							"dependsOn": [
+								{
+									"activity": "page_number_in_loop",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"userProperties": [],
+							"typeProperties": {
+								"variableName": "page_number",
+								"value": {
+									"value": "@string(add(int(variables('page_number_in_loop')),1))",
+									"type": "Expression"
+								}
+							}
 						},
 						{
 							"name": "If Valid Token",
@@ -465,66 +525,6 @@
 									}
 								]
 							}
-						},
-						{
-							"name": "page_number_in_loop",
-							"type": "SetVariable",
-							"dependsOn": [
-								{
-									"activity": "getCovisintUsersLoop",
-									"dependencyConditions": [
-										"Succeeded"
-									]
-								}
-							],
-							"userProperties": [],
-							"typeProperties": {
-								"variableName": "page_number_in_loop",
-								"value": {
-									"value": "@variables('page_number')",
-									"type": "Expression"
-								}
-							}
-						},
-						{
-							"name": "rest_call_output",
-							"type": "SetVariable",
-							"dependsOn": [
-								{
-									"activity": "page_number",
-									"dependencyConditions": [
-										"Succeeded"
-									]
-								}
-							],
-							"userProperties": [],
-							"typeProperties": {
-								"variableName": "users_written_in_cycle",
-								"value": {
-									"value": "@string(activity('getCovisintUsersLoop').output.rowsRead)",
-									"type": "Expression"
-								}
-							}
-						},
-						{
-							"name": "page_number",
-							"type": "SetVariable",
-							"dependsOn": [
-								{
-									"activity": "page_number_in_loop",
-									"dependencyConditions": [
-										"Succeeded"
-									]
-								}
-							],
-							"userProperties": [],
-							"typeProperties": {
-								"variableName": "page_number",
-								"value": {
-									"value": "@string(add(int(variables('page_number_in_loop')),1))",
-									"type": "Expression"
-								}
-							}
 						}
 					],
 					"timeout": "7.00:00:00"
@@ -555,7 +555,10 @@
 						"storeSettings": {
 							"type": "AzureBlobFSReadSettings",
 							"recursive": true,
-							"wildcardFolderPath": "COVISINT",
+							"wildcardFolderPath": {
+								"value": "@pipeline().parameters.covisint_directory",
+								"type": "Expression"
+							},
 							"wildcardFileName": "*",
 							"enablePartitionDiscovery": false
 						}
@@ -582,13 +585,13 @@
 				},
 				"inputs": [
 					{
-						"referenceName": "2_bs_covisint_temp",
+						"referenceName": "2_bs_covisint_temp1",
 						"type": "DatasetReference"
 					}
 				],
 				"outputs": [
 					{
-						"referenceName": "3_bs_covisint_sink",
+						"referenceName": "3_bs_covisint_sink1",
 						"type": "DatasetReference"
 					}
 				]
@@ -614,7 +617,7 @@
 				"userProperties": [],
 				"typeProperties": {
 					"dataset": {
-						"referenceName": "2_bs_covisint_temp",
+						"referenceName": "2_bs_covisint_temp1",
 						"type": "DatasetReference"
 					},
 					"enableLogging": false,
@@ -629,7 +632,14 @@
 			{
 				"name": "getCovisintToken",
 				"type": "WebActivity",
-				"dependsOn": [],
+				"dependsOn": [
+					{
+						"activity": "clean_covisint_path",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
 				"policy": {
 					"timeout": "7.00:00:00",
 					"retry": 0,
@@ -640,10 +650,6 @@
 				"userProperties": [],
 				"typeProperties": {
 					"url": "https://api.us1.covisint.com/oauth/v3/token",
-					"connectVia": {
-						"referenceName": "AutoResolveIntegrationRuntime",
-						"type": "IntegrationRuntimeReference"
-					},
 					"method": "POST",
 					"headers": {
 						"Content-Type": "application/x-www-form-urlencoded",
@@ -659,8 +665,40 @@
 						}
 					}
 				}
+			},
+			{
+				"name": "clean_covisint_path",
+				"type": "Delete",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"dataset": {
+						"referenceName": "3_bs_covisint_sink1",
+						"type": "DatasetReference"
+					},
+					"enableLogging": false,
+					"storeSettings": {
+						"type": "AzureBlobFSReadSettings",
+						"recursive": true,
+						"wildcardFileName": "bs_covisint_sink*",
+						"enablePartitionDiscovery": false
+					}
+				}
 			}
 		],
+		"parameters": {
+			"covisint_directory": {
+				"type": "string",
+				"defaultValue": "COVISINT"
+			}
+		},
 		"variables": {
 			"get_token_reponse": {
 				"type": "String"
@@ -680,7 +718,7 @@
 			},
 			"page_size": {
 				"type": "String",
-				"defaultValue": "200"
+				"defaultValue": "1000"
 			},
 			"page_number_in_loop": {
 				"type": "String"
@@ -690,6 +728,6 @@
 			"name": "Covisint_Pipelines"
 		},
 		"annotations": [],
-		"lastPublishTime": "2021-12-23T21:52:54Z"
+		"lastPublishTime": "2022-06-30T21:42:08Z"
 	}
 }

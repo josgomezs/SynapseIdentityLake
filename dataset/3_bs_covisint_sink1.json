@@ -1,0 +1,24 @@
+{
+	"name": "3_bs_covisint_sink1",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "identitylake_synapse_workspace",
+			"type": "LinkedServiceReference"
+		},
+		"folder": {
+			"name": "Covisint_DataSets"
+		},
+		"annotations": [],
+		"type": "Parquet",
+		"typeProperties": {
+			"location": {
+				"type": "AzureBlobFSLocation",
+				"fileName": "bs_covisint_sink.parquet",
+				"folderPath": "COVISINT",
+				"fileSystem": "landingzone"
+			},
+			"compressionCodec": "gzip"
+		},
+		"schema": []
+	}
+}

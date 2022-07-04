@@ -1,0 +1,17 @@
+{
+	"name": "tg_azuread_identitylake",
+	"properties": {
+		"annotations": [],
+		"runtimeState": "Stopped",
+		"pipelines": [],
+		"type": "ScheduleTrigger",
+		"typeProperties": {
+			"recurrence": {
+				"frequency": "Minute",
+				"interval": 15,
+				"startTime": "2022-07-04T21:28:00Z",
+				"timeZone": "UTC"
+			}
+		}
+	}
+}

@@ -374,23 +374,17 @@
 							},
 							"inputs": [
 								{
-									"referenceName": "bs_covisint_source1",
+									"referenceName": "bs_covisint_source",
 									"type": "DatasetReference",
 									"parameters": {
-										"page_size": {
-											"value": "@variables('page_size')",
-											"type": "Expression"
-										},
-										"page": {
-											"value": "@variables('page_number')",
-											"type": "Expression"
-										}
+										"page_size": "200",
+										"page": "1"
 									}
 								}
 							],
 							"outputs": [
 								{
-									"referenceName": "2_bs_covisint_temp1",
+									"referenceName": "2_bs_covisint_temp",
 									"type": "DatasetReference"
 								}
 							]
@@ -507,6 +501,10 @@
 										"userProperties": [],
 										"typeProperties": {
 											"url": "https://api.us1.covisint.com/oauth/v3/token",
+											"connectVia": {
+												"referenceName": "AutoResolveIntegrationRuntime",
+												"type": "IntegrationRuntimeReference"
+											},
 											"method": "POST",
 											"headers": {
 												"Content-Type": "application/x-www-form-urlencoded",
@@ -591,7 +589,7 @@
 				],
 				"outputs": [
 					{
-						"referenceName": "3_bs_covisint_sink1",
+						"referenceName": "3_bs_covisint_sink",
 						"type": "DatasetReference"
 					}
 				]
@@ -650,6 +648,10 @@
 				"userProperties": [],
 				"typeProperties": {
 					"url": "https://api.us1.covisint.com/oauth/v3/token",
+					"connectVia": {
+						"referenceName": "AutoResolveIntegrationRuntime",
+						"type": "IntegrationRuntimeReference"
+					},
 					"method": "POST",
 					"headers": {
 						"Content-Type": "application/x-www-form-urlencoded",

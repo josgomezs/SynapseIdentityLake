@@ -583,7 +583,7 @@
 				},
 				"inputs": [
 					{
-						"referenceName": "2_bs_covisint_temp1",
+						"referenceName": "2_bs_covisint_temp",
 						"type": "DatasetReference"
 					}
 				],
@@ -615,7 +615,7 @@
 				"userProperties": [],
 				"typeProperties": {
 					"dataset": {
-						"referenceName": "2_bs_covisint_temp1",
+						"referenceName": "3_bs_covisint_sink",
 						"type": "DatasetReference"
 					},
 					"enableLogging": false,
@@ -682,7 +682,7 @@
 				"userProperties": [],
 				"typeProperties": {
 					"dataset": {
-						"referenceName": "3_bs_covisint_sink1",
+						"referenceName": "3_bs_covisint_sink",
 						"type": "DatasetReference"
 					},
 					"enableLogging": false,

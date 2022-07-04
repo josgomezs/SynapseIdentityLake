@@ -62,7 +62,7 @@
 						}
 					},
 					"dataset": {
-						"referenceName": "1_bs_workday_source1",
+						"referenceName": "1_bs_workday_source",
 						"type": "DatasetReference"
 					}
 				}
@@ -444,7 +444,7 @@
 				},
 				"inputs": [
 					{
-						"referenceName": "3_bs_workday_sink",
+						"referenceName": "2_bs_workday_temp",
 						"type": "DatasetReference"
 					}
 				],
@@ -476,7 +476,7 @@
 				"userProperties": [],
 				"typeProperties": {
 					"dataset": {
-						"referenceName": "3_bs_workday_sink1",
+						"referenceName": "3_bs_workday_sink",
 						"type": "DatasetReference"
 					},
 					"enableLogging": false,
@@ -502,7 +502,7 @@
 				"userProperties": [],
 				"typeProperties": {
 					"dataset": {
-						"referenceName": "3_bs_workday_sink1",
+						"referenceName": "3_bs_workday_sink",
 						"type": "DatasetReference"
 					},
 					"enableLogging": false,

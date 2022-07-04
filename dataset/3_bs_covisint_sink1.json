@@ -14,7 +14,7 @@
 			"location": {
 				"type": "AzureBlobFSLocation",
 				"fileName": "bs_covisint_sink.parquet",
-				"folderPath": "COVISINT",
+				"folderPath": "covisint",
 				"fileSystem": "landingzone"
 			},
 			"compressionCodec": "gzip"

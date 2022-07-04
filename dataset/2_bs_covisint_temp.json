@@ -17,7 +17,7 @@
 					"value": "@concat('bs_covisint_sink_temp_', utcNow() , '.parquet')",
 					"type": "Expression"
 				},
-				"folderPath": "COVISINT",
+				"folderPath": "covisint",
 				"fileSystem": "landingzone"
 			},
 			"compressionCodec": "gzip"

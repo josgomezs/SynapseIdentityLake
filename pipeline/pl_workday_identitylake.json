@@ -518,7 +518,7 @@
 		"parameters": {
 			"workday_directory": {
 				"type": "string",
-				"defaultValue": "WorkDay"
+				"defaultValue": "workday"
 			}
 		},
 		"variables": {

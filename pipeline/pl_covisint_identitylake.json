@@ -696,7 +696,7 @@
 		"parameters": {
 			"covisint_directory": {
 				"type": "string",
-				"defaultValue": "COVISINT"
+				"defaultValue": "covisint"
 			}
 		},
 		"variables": {

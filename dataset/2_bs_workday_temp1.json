@@ -17,7 +17,7 @@
 					"value": "@concat(string('bs_workday_temp_'),utcnow(),'.parquet')",
 					"type": "Expression"
 				},
-				"folderPath": "WorkDay",
+				"folderPath": "workday",
 				"fileSystem": "landingzone"
 			},
 			"compressionCodec": "gzip"

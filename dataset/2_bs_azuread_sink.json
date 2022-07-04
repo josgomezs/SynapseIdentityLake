@@ -14,7 +14,7 @@
 			"location": {
 				"type": "AzureBlobFSLocation",
 				"fileName": "bs_azuread_sink.parquet",
-				"folderPath": "AzureActiveDirectory",
+				"folderPath": "azuread",
 				"fileSystem": "landingzone"
 			},
 			"compressionCodec": "gzip"

@@ -417,6 +417,12 @@
 				]
 			}
 		],
+		"parameters": {
+			"azuread_directory": {
+				"type": "string",
+				"defaultValue": "azuread"
+			}
+		},
 		"folder": {
 			"name": "AzureAD_Pipelines"
 		},

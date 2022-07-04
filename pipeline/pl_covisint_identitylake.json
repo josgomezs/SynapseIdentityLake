@@ -718,7 +718,7 @@
 			},
 			"page_size": {
 				"type": "String",
-				"defaultValue": "200"
+				"defaultValue": "1000"
 			},
 			"page_number_in_loop": {
 				"type": "String"

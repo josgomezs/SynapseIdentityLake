@@ -1,0 +1,548 @@
+{
+	"name": "pl_workday_identitylake",
+	"properties": {
+		"description": "extract and dump the Workday information",
+		"activities": [
+			{
+				"name": "num_pages",
+				"type": "SetVariable",
+				"dependsOn": [
+					{
+						"activity": "obtain_pages",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"variableName": "num_pages",
+					"value": {
+						"value": "@string(add(int(json(xml(replace(string(xml(activity('obtain_pages').output.firstRow)), ':', ''))).envelope.body.Get_Workers_Response.response_results.total_pages),1))",
+						"type": "Expression"
+					}
+				}
+			},
+			{
+				"name": "obtain_pages",
+				"type": "Lookup",
+				"dependsOn": [
+					{
+						"activity": "clean_workday_path",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "XmlSource",
+						"storeSettings": {
+							"type": "HttpReadSettings",
+							"requestMethod": "POST",
+							"additionalHeaders": "content-type:text/xml",
+							"requestBody": {
+								"value": "@{concat('<s:Envelope xmlns:s=\"http://schemas.xmlsoap.org/soap/envelope/\" xmlns:u=\"http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-utility-1.0.xsd\">\n   <s:Header>\n      <h:Workday_Common_Header xmlns:h=\"urn:com.workday/bsvc\" xmlns=\"urn:com.workday/bsvc\" xmlns:xsd=\"http://www.w3.org/2001/XMLSchema\" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\">\n         <Include_Reference_Descriptors_In_Response>true</Include_Reference_Descriptors_In_Response>\n      </h:Workday_Common_Header>\n      <o:Security xmlns:o=\"http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-secext-1.0.xsd\" s:mustUnderstand=\"1\">\n         <o:UsernameToken u:Id=\"uuid-5cea302c-c204-4be1-a0e4-11aa6735daf6-1\">\n            <o:Username>ISUGlobalEngineeringDAWorkday',string('@'),'coke</o:Username>\n            <o:Password>B%lUnAtYK8yT!ZW</o:Password>\n         </o:UsernameToken>\n      </o:Security>\n   </s:Header>\n   <s:Body xmlns:xsd=\"http://www.w3.org/2001/XMLSchema\" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\">\n      <Get_Workers_Request xmlns=\"urn:com.workday/bsvc\" xmlns:a=\"urn:com.workday/bsvc\" a:version=\"v33.1\">\n         <a:Response_Filter>\n            <a:Page>',variables('act_page'),'</a:Page>\n            <a:Count>',variables('num_workers'),'</a:Count>\n         </a:Response_Filter>\n         <a:Response_Group>\n            <a:Include_Reference>false</a:Include_Reference>\n            <a:Include_Personal_Information>false</a:Include_Personal_Information>\n            <a:Include_Employment_Information>false</a:Include_Employment_Information>\n            <a:Include_User_Account>false</a:Include_User_Account>\n         </a:Response_Group>\n      </Get_Workers_Request>\n   </s:Body>\n</s:Envelope>')}",
+								"type": "Expression"
+							},
+							"requestTimeout": "00:10:00"
+						},
+						"formatSettings": {
+							"type": "XmlReadSettings",
+							"validationMode": "none",
+							"namespaces": true
+						}
+					},
+					"dataset": {
+						"referenceName": "1_bs_workday_source1",
+						"type": "DatasetReference"
+					}
+				}
+			},
+			{
+				"name": "temp_workers_files",
+				"type": "Until",
+				"dependsOn": [
+					{
+						"activity": "num_pages",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"expression": {
+						"value": "@equals(variables('num_pages'),variables('act_page'))",
+						"type": "Expression"
+					},
+					"activities": [
+						{
+							"name": "upd_page_num",
+							"type": "SetVariable",
+							"dependsOn": [
+								{
+									"activity": "upd_page_num_until",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"userProperties": [],
+							"typeProperties": {
+								"variableName": "act_page",
+								"value": {
+									"value": "@string(add(int(variables('act_page_until')),1))",
+									"type": "Expression"
+								}
+							}
+						},
+						{
+							"name": "save_temp_workers",
+							"type": "Copy",
+							"dependsOn": [],
+							"policy": {
+								"timeout": "7.00:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"source": {
+									"type": "XmlSource",
+									"storeSettings": {
+										"type": "HttpReadSettings",
+										"requestMethod": "POST",
+										"additionalHeaders": "content-type: text/xml",
+										"requestBody": {
+											"value": "@{concat('<s:Envelope xmlns:s=\"http://schemas.xmlsoap.org/soap/envelope/\" xmlns:u=\"http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-utility-1.0.xsd\">\n   <s:Header>\n      <h:Workday_Common_Header xmlns:h=\"urn:com.workday/bsvc\" xmlns=\"urn:com.workday/bsvc\" xmlns:xsd=\"http://www.w3.org/2001/XMLSchema\" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\">\n         <Include_Reference_Descriptors_In_Response>true</Include_Reference_Descriptors_In_Response>\n      </h:Workday_Common_Header>\n      <o:Security xmlns:o=\"http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-secext-1.0.xsd\" s:mustUnderstand=\"1\">\n         <o:UsernameToken u:Id=\"uuid-5cea302c-c204-4be1-a0e4-11aa6735daf6-1\">\n            <o:Username>ISUGlobalEngineeringDAWorkday',string('@'),'coke</o:Username>\n            <o:Password>B%lUnAtYK8yT!ZW</o:Password>\n         </o:UsernameToken>\n      </o:Security>\n   </s:Header>\n   <s:Body xmlns:xsd=\"http://www.w3.org/2001/XMLSchema\" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\">\n      <Get_Workers_Request xmlns=\"urn:com.workday/bsvc\" xmlns:a=\"urn:com.workday/bsvc\" a:version=\"v33.1\">\n         <a:Response_Filter>\n            <a:Page>',variables('act_page'),'</a:Page>\n            <a:Count>',variables('num_workers'),'</a:Count>\n         </a:Response_Filter>\n         <a:Response_Group>\n            <a:Include_Reference>true</a:Include_Reference>\n            <a:Include_Personal_Information>true</a:Include_Personal_Information>\n            <a:Include_Employment_Information>true</a:Include_Employment_Information>\n            <a:Include_User_Account>true</a:Include_User_Account>\n         </a:Response_Group>\n      </Get_Workers_Request>\n   </s:Body>\n</s:Envelope>')}",
+											"type": "Expression"
+										},
+										"requestTimeout": "00:10:00"
+									},
+									"formatSettings": {
+										"type": "XmlReadSettings",
+										"validationMode": "none",
+										"namespaces": true
+									}
+								},
+								"sink": {
+									"type": "ParquetSink",
+									"storeSettings": {
+										"type": "AzureBlobFSWriteSettings"
+									},
+									"formatSettings": {
+										"type": "ParquetWriteSettings"
+									}
+								},
+								"enableStaging": false,
+								"translator": {
+									"type": "TabularTranslator",
+									"mappings": [
+										{
+											"source": {
+												"path": "['wd:Worker_Data']['wd:User_ID']"
+											},
+											"sink": {
+												"name": "user_id",
+												"type": "String"
+											}
+										},
+										{
+											"source": {
+												"path": "['wd:Worker_Data']['wd:Worker_ID']"
+											},
+											"sink": {
+												"name": "worker_id",
+												"type": "String"
+											}
+										},
+										{
+											"source": {
+												"path": "['wd:Worker_Data']['wd:Personal_Data']['wd:Contact_Data']['wd:Email_Address_Data'][0]['wd:Email_Address']"
+											},
+											"sink": {
+												"name": "email_address",
+												"type": "String"
+											}
+										},
+										{
+											"source": {
+												"path": "['wd:Worker_Data']['wd:Personal_Data']['wd:Name_Data']['wd:Legal_Name_Data']['wd:Name_Detail_Data']['wd:Prefix_Data']['wd:Title_Descriptor']"
+											},
+											"sink": {
+												"name": "title_descriptor",
+												"type": "String"
+											}
+										},
+										{
+											"source": {
+												"path": "['wd:Worker_Data']['wd:Personal_Data']['wd:Name_Data']['wd:Legal_Name_Data']['wd:Name_Detail_Data']['wd:First_Name']"
+											},
+											"sink": {
+												"name": "first_name",
+												"type": "String"
+											}
+										},
+										{
+											"source": {
+												"path": "['wd:Worker_Data']['wd:Personal_Data']['wd:Name_Data']['wd:Legal_Name_Data']['wd:Name_Detail_Data']['wd:Last_Name']"
+											},
+											"sink": {
+												"name": "last_name",
+												"type": "String"
+											}
+										},
+										{
+											"source": {
+												"path": "['wd:Worker_Data']['wd:Personal_Data']['wd:Name_Data']['wd:Legal_Name_Data']['wd:Name_Detail_Data']['wd:Country_Reference']['wd:@Descriptor']"
+											},
+											"sink": {
+												"name": "country_reference",
+												"type": "String"
+											}
+										},
+										{
+											"source": {
+												"path": "['wd:Worker_Data']['wd:Employment_Data']['wd:Worker_Status_Data']['wd:Active']"
+											},
+											"sink": {
+												"name": "active",
+												"type": "String"
+											}
+										},
+										{
+											"source": {
+												"path": "['wd:Worker_Data']['wd:Employment_Data']['wd:Worker_Status_Data']['wd:Hire_Date']"
+											},
+											"sink": {
+												"name": "hire_date",
+												"type": "String"
+											}
+										},
+										{
+											"source": {
+												"path": "['wd:Worker_Data']['wd:Employment_Data']['wd:Worker_Status_Data']['wd:Active_Status_Date']"
+											},
+											"sink": {
+												"name": "active_status_date",
+												"type": "String"
+											}
+										},
+										{
+											"source": {
+												"path": "['wd:Worker_Data']['wd:Employment_Data']['wd:Worker_Status_Data']['wd:Original_Hire_Date']"
+											},
+											"sink": {
+												"name": "original_hire_sate",
+												"type": "String"
+											}
+										},
+										{
+											"source": {
+												"path": "['wd:Worker_Data']['wd:Employment_Data']['wd:Worker_Status_Data']['wd:Continuous_Service_Date']"
+											},
+											"sink": {
+												"name": "continuous_service_date",
+												"type": "String"
+											}
+										},
+										{
+											"source": {
+												"path": "['wd:Worker_Data']['wd:Employment_Data']['wd:Worker_Status_Data']['wd:First_Day_of_Work']"
+											},
+											"sink": {
+												"name": "first_day_of_work",
+												"type": "String"
+											}
+										},
+										{
+											"source": {
+												"path": "['wd:Worker_Data']['wd:Employment_Data']['wd:Worker_Status_Data']['wd:Seniority_Date']"
+											},
+											"sink": {
+												"name": "seniority_date",
+												"type": "String"
+											}
+										},
+										{
+											"source": {
+												"path": "['wd:Worker_Data']['wd:Employment_Data']['wd:Worker_Status_Data']['wd:Company_Service_Date']"
+											},
+											"sink": {
+												"name": "company_service_date",
+												"type": "String"
+											}
+										},
+										{
+											"source": {
+												"path": "['wd:Worker_Data']['wd:Employment_Data']['wd:Worker_Job_Data']['wd:Position_Data']['wd:Position_ID']"
+											},
+											"sink": {
+												"name": "position_id",
+												"type": "String"
+											}
+										},
+										{
+											"source": {
+												"path": "['wd:Worker_Data']['wd:Employment_Data']['wd:Worker_Job_Data']['wd:Position_Data']['wd:Position_Title']"
+											},
+											"sink": {
+												"name": "position_title",
+												"type": "String"
+											}
+										},
+										{
+											"source": {
+												"path": "['wd:Worker_Data']['wd:Employment_Data']['wd:Worker_Job_Data']['wd:Position_Data']['wd:Business_Title']"
+											},
+											"sink": {
+												"name": "business_title",
+												"type": "String"
+											}
+										},
+										{
+											"source": {
+												"path": "['wd:Worker_Data']['wd:Employment_Data']['wd:Worker_Job_Data']['wd:Position_Data']['wd:Start_Date']"
+											},
+											"sink": {
+												"name": "start_date",
+												"type": "String"
+											}
+										},
+										{
+											"source": {
+												"path": "['wd:Worker_Data']['wd:Employment_Data']['wd:Worker_Job_Data']['wd:Position_Data']['wd:Job_Profile_Summary_Data']['wd:Job_Profile_Name']"
+											},
+											"sink": {
+												"name": "job_profile_name",
+												"type": "String"
+											}
+										},
+										{
+											"source": {
+												"path": "['wd:Worker_Data']['wd:Employment_Data']['wd:Worker_Job_Data']['wd:Position_Data']['wd:Business_Site_Summary_Data']['wd:Name']"
+											},
+											"sink": {
+												"name": "business_site_name",
+												"type": "String"
+											}
+										},
+										{
+											"source": {
+												"path": "['wd:Worker_Descriptor']"
+											},
+											"sink": {
+												"name": "worker_descriptor",
+												"type": "String"
+											}
+										}
+									],
+									"collectionReference": "$['env:Envelope']['env:Body']['wd:Get_Workers_Response']['wd:Response_Data']['wd:Worker']",
+									"mapComplexValuesToString": true
+								}
+							},
+							"inputs": [
+								{
+									"referenceName": "1_bs_workday_source",
+									"type": "DatasetReference"
+								}
+							],
+							"outputs": [
+								{
+									"referenceName": "2_bs_workday_temp",
+									"type": "DatasetReference"
+								}
+							]
+						},
+						{
+							"name": "upd_page_num_until",
+							"type": "SetVariable",
+							"dependsOn": [
+								{
+									"activity": "save_temp_workers",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"userProperties": [],
+							"typeProperties": {
+								"variableName": "act_page_until",
+								"value": {
+									"value": "@variables('act_page')",
+									"type": "Expression"
+								}
+							}
+						}
+					],
+					"timeout": "7.00:00:00"
+				}
+			},
+			{
+				"name": "merge_files",
+				"type": "Copy",
+				"dependsOn": [
+					{
+						"activity": "temp_workers_files",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "ParquetSource",
+						"storeSettings": {
+							"type": "AzureBlobFSReadSettings",
+							"recursive": true,
+							"wildcardFolderPath": {
+								"value": "@pipeline().parameters.workday_directory",
+								"type": "Expression"
+							},
+							"wildcardFileName": "*",
+							"enablePartitionDiscovery": false
+						}
+					},
+					"sink": {
+						"type": "ParquetSink",
+						"storeSettings": {
+							"type": "AzureBlobFSWriteSettings",
+							"copyBehavior": "MergeFiles"
+						},
+						"formatSettings": {
+							"type": "ParquetWriteSettings"
+						}
+					},
+					"enableStaging": false,
+					"translator": {
+						"type": "TabularTranslator",
+						"typeConversion": true,
+						"typeConversionSettings": {
+							"allowDataTruncation": true,
+							"treatBooleanAsNumber": false
+						}
+					}
+				},
+				"inputs": [
+					{
+						"referenceName": "3_bs_workday_sink",
+						"type": "DatasetReference"
+					}
+				],
+				"outputs": [
+					{
+						"referenceName": "3_bs_workday_sink",
+						"type": "DatasetReference"
+					}
+				]
+			},
+			{
+				"name": "delete_temp_files",
+				"type": "Delete",
+				"dependsOn": [
+					{
+						"activity": "merge_files",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"dataset": {
+						"referenceName": "3_bs_workday_sink1",
+						"type": "DatasetReference"
+					},
+					"enableLogging": false,
+					"storeSettings": {
+						"type": "AzureBlobFSReadSettings",
+						"recursive": true,
+						"wildcardFileName": "bs_workday_temp*",
+						"enablePartitionDiscovery": false
+					}
+				}
+			},
+			{
+				"name": "clean_workday_path",
+				"type": "Delete",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"dataset": {
+						"referenceName": "3_bs_workday_sink1",
+						"type": "DatasetReference"
+					},
+					"enableLogging": false,
+					"storeSettings": {
+						"type": "AzureBlobFSReadSettings",
+						"recursive": true,
+						"wildcardFileName": "bs_workday_sink*",
+						"enablePartitionDiscovery": false
+					}
+				}
+			}
+		],
+		"parameters": {
+			"workday_directory": {
+				"type": "string",
+				"defaultValue": "workday"
+			}
+		},
+		"variables": {
+			"num_pages": {
+				"type": "String",
+				"defaultValue": "0"
+			},
+			"act_page": {
+				"type": "String",
+				"defaultValue": "1"
+			},
+			"num_workers": {
+				"type": "String",
+				"defaultValue": "999"
+			},
+			"act_page_until": {
+				"type": "String",
+				"defaultValue": "0"
+			}
+		},
+		"folder": {
+			"name": "Workday_Pipelines"
+		},
+		"annotations": [],
+		"lastPublishTime": "2022-06-30T21:21:07Z"
+	}
+}

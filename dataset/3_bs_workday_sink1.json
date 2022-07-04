@@ -14,7 +14,7 @@
 			"location": {
 				"type": "AzureBlobFSLocation",
 				"fileName": "bs_workday_sink.parquet",
-				"folderPath": "WorkDay",
+				"folderPath": "workday",
 				"fileSystem": "landingzone"
 			},
 			"compressionCodec": "gzip"

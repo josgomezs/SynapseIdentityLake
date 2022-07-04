@@ -2,14 +2,21 @@
 	"name": "tg_workday_identitylake",
 	"properties": {
 		"annotations": [],
-		"runtimeState": "Stopped",
-		"pipelines": [],
+		"runtimeState": "Started",
+		"pipelines": [
+			{
+				"pipelineReference": {
+					"referenceName": "pl_workday_identitylake",
+					"type": "PipelineReference"
+				}
+			}
+		],
 		"type": "ScheduleTrigger",
 		"typeProperties": {
 			"recurrence": {
-				"frequency": "Minute",
-				"interval": 15,
-				"startTime": "2022-07-04T21:30:00Z",
+				"frequency": "Day",
+				"interval": 1,
+				"startTime": "2022-02-01T06:00:00Z",
 				"timeZone": "UTC"
 			}
 		}

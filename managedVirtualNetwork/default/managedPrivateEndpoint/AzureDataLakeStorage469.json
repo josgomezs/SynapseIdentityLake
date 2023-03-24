@@ -1,0 +1,7 @@
+{
+	"name": "AzureDataLakeStorage469",
+	"properties": {
+		"privateLinkResourceId": "/subscriptions/f5ebe0d0-4f94-426b-9eae-fc890a91ea29/resourceGroups/rg-tccc-udp-prod/providers/Microsoft.Storage/storageAccounts/sause2tcccudpprod09",
+		"groupId": "dfs"
+	}
+}

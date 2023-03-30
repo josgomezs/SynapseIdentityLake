@@ -1,0 +1,7 @@
+{
+	"name": "test_2",
+	"properties": {
+		"privateLinkResourceId": "/subscriptions/bfd32f95-ec4e-43e0-9d62-50d6bc29044b/resourceGroups/rg-tccc-udp-dev-sharedservice/providers/Microsoft.Storage/storageAccounts/sause2tcccudpdev37",
+		"groupId": "dfs"
+	}
+}
